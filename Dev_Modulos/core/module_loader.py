@@ -5,7 +5,6 @@ class ModuleLoader:
 
     @staticmethod
     def carregar_modulos():
-
         modules = []
 
         pasta_modules = BASE_PATH / "modules"
