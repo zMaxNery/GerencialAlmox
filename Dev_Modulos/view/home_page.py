@@ -46,6 +46,11 @@ class HomePage(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="Gerencial", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=20)
 
+        self.sidebar_frame.grid_rowconfigure(99, weight=1)
+
+        self.btn_theme = ctk.CTkButton(self.sidebar_frame, text="Mudar tema", command=self.btn_change_theme)
+        self.btn_theme.grid(row=100, column=0, padx=20, pady=20, sticky="s")
+
     def btn_change_theme(self):
         if ctk.get_appearance_mode() == "Dark":
             ctk.set_appearance_mode("Light")
@@ -53,7 +58,6 @@ class HomePage(ctk.CTk):
             ctk.set_appearance_mode("Dark")
 
     def carregar_menu_modulos(self):
-
         modulos = ModuleLoader.carregar_modulos()
 
         linha = 1
@@ -66,11 +70,6 @@ class HomePage(ctk.CTk):
                 command=lambda m=modulo: m.abrir(self.conteudo_frame)
             )
 
-            btn.grid(
-                row=linha,
-                column=0,
-                padx=20,
-                pady=10
-            )
+            btn.grid(row=linha, column=0, padx=20, pady=10)
 
             linha += 1
