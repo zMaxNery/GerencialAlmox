@@ -1,6 +1,7 @@
 import customtkinter as ctk
 
 NOME = "Módulo Teste"
+ORDEM = 50
 
 def abrir(parent):
 
@@ -30,4 +31,3 @@ def abrir(parent):
     )
 
     botao.pack(pady=20)
-    
