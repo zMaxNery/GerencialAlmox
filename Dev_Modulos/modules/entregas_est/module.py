@@ -1,6 +1,6 @@
 from modules.entregas_est.view import EntregasEstView
 
-NOME = "Entregas EST"
+NOME = "Requisições"
 ORDEM = 20
 
 

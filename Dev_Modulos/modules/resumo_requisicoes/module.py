@@ -1,6 +1,6 @@
-from modules.visao_administrativa.view import VisaoAdministrativaView
+from modules.resumo_requisicoes.view import VisaoAdministrativaView
 
-NOME = "Visão Administrativa"
+NOME = "Resumo"
 ORDEM = 30
 
 

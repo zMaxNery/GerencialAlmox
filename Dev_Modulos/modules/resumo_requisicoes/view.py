@@ -43,7 +43,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
 
         ctk.CTkLabel(
             header,
-            text="Visão administrativa — FAB e EST entregues",
+            text="Resumo de requisições",
             font=ctk.CTkFont(size=25, weight="bold"),
         ).pack(side="left")
         ctk.CTkButton(header, text="Atualizar", command=self.refresh).pack(side="right")

@@ -20,8 +20,7 @@ def get_supabase() -> Client:
 
     if not url or not key:
         raise RuntimeError(
-            "Supabase não configurado. Crie Dev_Modulos/.env com "
-            "SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY."
+            "Supabase não configurado"
         )
 
     return create_client(url, key)
