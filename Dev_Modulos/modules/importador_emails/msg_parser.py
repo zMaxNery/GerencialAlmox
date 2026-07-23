@@ -16,7 +16,6 @@ from modules.importador_emails.models import (
     ItemResumoTotvs,
 )
 
-
 class MsgParser:
     DETAIL_REQUIRED = {"MATERIAL", "DIMENSAO", "QTDE", "RASTREABILIDADE"}
     SUMMARY_REQUIRED = {"REQUISICAO", "MATERIAL", "OS SO", "OF"}

@@ -12,6 +12,7 @@ from core.almox_repository import AlmoxRepository
 from modules.importador_emails.models import EmailProcessado
 from modules.importador_emails.msg_parser import MsgParser
 
+# Carrega a função de arrastar e soltar na tela
 try:
     from tkinterdnd2 import DND_FILES
 except ImportError:
@@ -40,12 +41,14 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(3, weight=1)
 
+        # Contrutor dos objetos da tela
         self._build_header()
         self._build_actions()
         self._build_table()
 
         self.after_idle(self._enable_drag_drop)
 
+    # Cabeçalho com Título
     def _build_header(self) -> None:
         ctk.CTkLabel(
             self,
@@ -53,19 +56,26 @@ class ImportadorEmailsView(ctk.CTkFrame):
             font=ctk.CTkFont(size=25, weight="bold"),
         ).grid(row=0, column=0, sticky="w", padx=20, pady=(20, 8))
 
+    # Gatilhos de funções
     def _build_actions(self) -> None:
         actions = ctk.CTkFrame(self, fg_color="transparent")
         actions.grid(row=2, column=0, sticky="ew", padx=20, pady=8)
 
+        # Btn selecionar arquivos
         ctk.CTkButton(
             actions, text="Selecionar arquivos", command=self._select_files
         ).pack(side="left", padx=(0, 8))
+
+        # Btn analisar dados 
         ctk.CTkButton(actions, text="Analisar", command=self._analyze_all).pack(
-            side="left", padx=8
-        )
+            side="left", padx=8)
+
+        # Btn importar requisições válidas
         ctk.CTkButton(
             actions, text="Importar válidos", command=self._import_all
         ).pack(side="left", padx=8)
+
+        # Btn limpar emails da tela
         ctk.CTkButton(actions, text="Limpar", command=self._clear).pack(
             side="left", padx=8
         )
@@ -73,17 +83,47 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self.status_label = ctk.CTkLabel(actions, text="Nenhum arquivo selecionado.")
         self.status_label.pack(side="right", padx=8)
 
+    # Construtor da Tabela
     def _build_table(self) -> None:
+        ### Formatação da tabela
+        # Fonte e altura das linhas
+        style = ttk.Style()
+        style.configure(
+            "Importador.Treeview",
+            font=("Arial", 12),
+            rowheight=36,
+        )
+
+        # Fonte do cabeçalho
+        style.configure(
+            "Importador.Treeview.Heading",
+            font=("Arial", 14, "bold"),
+        )
+
         container = ctk.CTkFrame(self)
         container.grid(row=3, column=0, sticky="nsew", padx=20, pady=(8, 20))
         container.grid_columnconfigure(0, weight=1)
         container.grid_rowconfigure(0, weight=1)
 
+        # Aplica a formatação e outras definições
         self.tree = ttk.Treeview(
             container,
             columns=self.COLUMNS,
             show="headings",
             selectmode="browse",
+            style="Importador.Treeview"
+        )
+
+        # Configuração de cores da tabela
+        self.tree.tag_configure(
+            "linha_par",
+            background="#BEBEBE",
+            foreground="#000000",
+        )
+        self.tree.tag_configure(
+            "linha_impar",
+            background="#FFFFFF",
+            foreground="#000000",
         )
 
         headings = {
@@ -92,7 +132,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
             "tipo": "Tipo",
             "detalhes": "Detalhes",
             "resumos": "Resumo",
-            "peso": "Peso (kg)",
+            "peso": "Peso Líquido",
             "status": "Situação",
         }
         widths = {
@@ -117,6 +157,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")
 
+    # Carregador da função Drag-Drop
     def _enable_drag_drop(self) -> None:
         if self.drag_drop_ativo:
             return
@@ -165,6 +206,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
                 text=f"Drag-and-drop indisponível: {exc}"
             )
 
+    # Ação quando soltar os arquivos na tela
     def _on_drop_files(self, event):
         try:
             # event.data é uma lista Tcl.
@@ -186,13 +228,15 @@ class ImportadorEmailsView(ctk.CTkFrame):
 
         return getattr(event, "action", "copy")
 
+    # Seleção manual de arquivos
     def _select_files(self) -> None:
         paths = filedialog.askopenfilenames(
-            title="Selecionar mensagens Outlook",
-            filetypes=[("Mensagem Outlook", "*.msg")],
+            title="Selecionar email de requisição",
+            filetypes=[("Email Outlook", "*.msg")],
         )
         self._add_files(paths)
 
+    # Carregador e processador dos arquivos recebidos (apenas .msg)
     def _add_files(self, paths) -> None:
         adicionados = 0
         ignorados = 0
@@ -246,6 +290,8 @@ class ImportadorEmailsView(ctk.CTkFrame):
             self.status_label.configure(
                 text="Nenhum arquivo .msg válido foi adicionado."
             )
+
+    # Função para analisar os arquivos recebidos
     def _analyze_all(self) -> None:
         if not self.files:
             messagebox.showinfo("Importador", "Selecione pelo menos um arquivo de requisição.")
@@ -325,21 +371,24 @@ class ImportadorEmailsView(ctk.CTkFrame):
             )
         )
 
+    # Acesso ao banco de dados
     def _get_repository(self) -> AlmoxRepository:
         if self.repository is None:
             self.repository = AlmoxRepository()
         return self.repository
 
+    # Limpa a tabela de importação 
     def _clear(self) -> None:
         self.files.clear()
         self._refresh_table()
         self.status_label.configure(text="Nenhum arquivo selecionado.")
 
+    # Atualiza as informações da tabela
     def _refresh_table(self) -> None:
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
 
-        for key, record in self.files.items():
+        for indice, (key, record) in enumerate(self.files.items()):
             parsed: EmailProcessado | None = record["parsed"]
 
             if parsed:
@@ -363,4 +412,12 @@ class ImportadorEmailsView(ctk.CTkFrame):
                     record["status"],
                 )
 
-            self.tree.insert("", "end", iid=key, values=values)
+            tag_linha = "linha_par" if indice % 2 == 0 else "linha_impar"
+
+            self.tree.insert(
+                "",
+                "end",
+                iid=key,
+                values=values,
+                tags=(tag_linha,),
+            )

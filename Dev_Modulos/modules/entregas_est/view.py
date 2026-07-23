@@ -89,12 +89,44 @@ class EntregasEstView(ctk.CTkFrame):
         ).grid(row=1, column=6, padx=10, pady=10)
 
     def _build_table(self) -> None:
+        # Fonte e altura das linhas
+        style = ttk.Style()
+        style.configure(
+            "Requisicoes.Treeview",
+            font=("Arial", 12),
+            rowheight=36,
+        )
+
+        # Fonte do cabeçalho
+        style.configure(
+            "Requisicoes.Treeview.Heading",
+            font=("Arial", 14, "bold"),
+        )
+
         container = ctk.CTkFrame(self)
         container.grid(row=2, column=0, sticky="nsew", padx=20, pady=(8, 20))
         container.grid_columnconfigure(0, weight=1)
         container.grid_rowconfigure(0, weight=1)
 
-        self.tree = ttk.Treeview(container, columns=self.COLUMNS, show="headings")
+        self.tree = ttk.Treeview(
+            container,
+            columns=self.COLUMNS,
+            show="headings",
+            style="Requisicoes.Treeview"
+            )
+
+        # Configuração de cores da tabela
+        self.tree.tag_configure(
+            "linha_par",
+            background="#BEBEBE",
+            foreground="#000000",
+        )
+
+        self.tree.tag_configure(
+            "linha_impar",
+            background="#FFFFFF",
+            foreground="#000000",
+        )
 
         labels = {
             "data": "Data",
@@ -148,9 +180,12 @@ class EntregasEstView(ctk.CTkFrame):
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
 
-        for row in data:
+        for indice, row in enumerate(data):
             key = str(row["item_requisicao_id"])
             self.rows[key] = row
+
+            tag_linha = "linha_par" if indice % 2 == 0 else "linha_impar"
+
             self.tree.insert(
                 "",
                 "end",
@@ -166,6 +201,7 @@ class EntregasEstView(ctk.CTkFrame):
                     row.get("localizacao") or "",
                     row.get("setor") or "",
                 ),
+                tags=(tag_linha,),
             )
 
         self.selected_label.configure(text=f"{len(data)} item(ns) pendente(s)")
