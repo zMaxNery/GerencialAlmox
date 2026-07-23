@@ -230,12 +230,12 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         style = ttk.Style()
         style.configure(
             "Historico.Treeview",
-            font=("Arial", 11),
-            rowheight=32,
+            font=("Arial", 12),
+            rowheight=36,
         )
         style.configure(
             "Historico.Treeview.Heading",
-            font=("Arial", 12, "bold"),
+            font=("Arial", 14, "bold"),
         )
 
         container = ctk.CTkFrame(self)
@@ -273,9 +273,9 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         )
 
         labels = {
-            "data_requisicao": "Data requisição",
-            "hora_requisicao": "Hora requisição",
-            "data_entrega": "Data entrega",
+            "data_requisicao": "DT Req",
+            "hora_requisicao": "Hr Req",
+            "data_entrega": "Dt entrega",
             "material": "Material",
             "dimensao": "Dimensão",
             "solicitado": "Solicitado",
@@ -287,16 +287,16 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         }
 
         widths = {
-            "data_requisicao": 105,
-            "hora_requisicao": 95,
-            "data_entrega": 100,
-            "material": 160,
-            "dimensao": 150,
-            "solicitado": 85,
-            "entregue": 80,
-            "rastreabilidade": 135,
-            "estoque": 90,
-            "setor": 100,
+            "data_requisicao": 50,
+            "hora_requisicao": 20,
+            "data_entrega": 50,
+            "material": 200,
+            "dimensao": 50,
+            "solicitado": 50,
+            "entregue": 50,
+            "rastreabilidade": 120,
+            "estoque": 40,
+            "setor": 40,
             "observacao": 240,
         }
 
@@ -545,19 +545,12 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             )
             return
 
-        if not note:
-            messagebox.showinfo(
-                "Devolução",
-                "Informe o motivo da devolução.",
-            )
-            return
-
         confirmed = messagebox.askyesno(
             "Confirmar devolução",
             (
                 f"Devolver {self._fmt_number(quantity)} do material "
                 f"{row.get('material', '')}?\n\n"
-                "A quantidade retornará para a tela de pendências."
+                "A quantidade retornará para a tela de separação."
             ),
         )
 

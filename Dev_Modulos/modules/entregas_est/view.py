@@ -277,7 +277,7 @@ class EntregasEstView(ctk.CTkFrame):
 
         ctk.CTkButton(
             painel,
-            text="Falta",
+            text="Total",
             command=self._keypad_fill_remaining,
         ).grid(
             row=8,
