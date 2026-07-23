@@ -53,10 +53,10 @@ class AlmoxRepository:
         nome_operador: str,
         observacao: str | None = None,
     ) -> dict[str, Any]:
-        try:
-            quantidade_normalizada = Decimal(str(quantidade).replace(",", "."))
-        except InvalidOperation as exc:
-            raise ValueError("Quantidade entregue inválida.") from exc
+        quantidade_normalizada = self._normalizar_quantidade(
+            quantidade,
+            "Quantidade entregue inválida.",
+        )
 
         response = self.client.rpc(
             "registrar_entrega",
@@ -84,6 +84,65 @@ class AlmoxRepository:
         )
         return response.data or []
 
+    def listar_historico_entregas(self) -> list[dict[str, Any]]:
+        response = (
+            self.client.table("vw_historico_entregas")
+            .select("*")
+            .order("entregue_em", desc=True)
+            .order("apontamento_entrega_id", desc=True)
+            .limit(5000)
+            .execute()
+        )
+        return response.data or []
+
+    def devolver_material(
+        self,
+        apontamento_entrega_id: int,
+        quantidade: Decimal | str | float,
+        nome_operador: str,
+        observacao: str | None = None,
+    ) -> dict[str, Any]:
+        quantidade_normalizada = self._normalizar_quantidade(
+            quantidade,
+            "Quantidade devolvida inválida.",
+        )
+
+        response = self.client.rpc(
+            "devolver_material",
+            {
+                "p_apontamento_entrega_id": apontamento_entrega_id,
+                "p_quantidade": float(quantidade_normalizada),
+                "p_nome_operador": nome_operador.strip(),
+                "p_observacao": observacao.strip() if observacao else None,
+            },
+        ).execute()
+
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da devolução.",
+        )
+
+    def listar_historico_devolucoes(self) -> list[dict[str, Any]]:
+        response = (
+            self.client.table("vw_historico_devolucoes")
+            .select("*")
+            .order("devolvido_em", desc=True)
+            .order("devolucao_id", desc=True)
+            .limit(5000)
+            .execute()
+        )
+        return response.data or []
+
+    @staticmethod
+    def _normalizar_quantidade(
+        quantidade: Decimal | str | float,
+        mensagem: str,
+    ) -> Decimal:
+        try:
+            return Decimal(str(quantidade).replace(",", "."))
+        except InvalidOperation as exc:
+            raise ValueError(mensagem) from exc
+
     @staticmethod
     def _obter_resultado_rpc(data: Any, mensagem_erro: str) -> dict[str, Any]:
         if isinstance(data, list) and data:
@@ -95,43 +154,3 @@ class AlmoxRepository:
             return data
 
         raise RuntimeError(mensagem_erro)
-
-    def listar_historico_entregas(self) -> list[dict[str, Any]]:
-        response = (
-            self.client.table("vw_historico_entregas")
-            .select("*")
-            .order("entregue_em", desc=True)
-            .order("apontamento_entrega_id", desc=True)
-            .limit(3000)
-            .execute()
-        )
-        return response.data or []
-
-    def devolver_material(
-        self,
-        apontamento_entrega_id: int,
-        quantidade: Decimal | str | float,
-        nome_operador: str,
-        observacao: str,
-    ) -> dict[str, Any]:
-        try:
-            quantidade_normalizada = Decimal(
-                str(quantidade).replace(",", ".")
-            )
-        except InvalidOperation as exc:
-            raise ValueError("Quantidade devolvida inválida.") from exc
-
-        response = self.client.rpc(
-            "devolver_material",
-            {
-                "p_apontamento_entrega_id": apontamento_entrega_id,
-                "p_quantidade": float(quantidade_normalizada),
-                "p_nome_operador": nome_operador.strip(),
-                "p_observacao": observacao.strip(),
-            },
-        ).execute()
-
-        return self._obter_resultado_rpc(
-            response.data,
-            "O Supabase não retornou o resultado da devolução.",
-        )
