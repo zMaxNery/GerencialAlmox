@@ -1,6 +1,6 @@
 from modules.resumo_requisicoes.view import VisaoAdministrativaView
 
-NOME = "Resumo"
+NOME = "Material Entregue"
 ORDEM = 30
 
 

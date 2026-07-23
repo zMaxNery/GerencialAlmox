@@ -95,3 +95,43 @@ class AlmoxRepository:
             return data
 
         raise RuntimeError(mensagem_erro)
+
+    def listar_historico_entregas(self) -> list[dict[str, Any]]:
+        response = (
+            self.client.table("vw_historico_entregas")
+            .select("*")
+            .order("entregue_em", desc=True)
+            .order("apontamento_entrega_id", desc=True)
+            .limit(3000)
+            .execute()
+        )
+        return response.data or []
+
+    def devolver_material(
+        self,
+        apontamento_entrega_id: int,
+        quantidade: Decimal | str | float,
+        nome_operador: str,
+        observacao: str,
+    ) -> dict[str, Any]:
+        try:
+            quantidade_normalizada = Decimal(
+                str(quantidade).replace(",", ".")
+            )
+        except InvalidOperation as exc:
+            raise ValueError("Quantidade devolvida inválida.") from exc
+
+        response = self.client.rpc(
+            "devolver_material",
+            {
+                "p_apontamento_entrega_id": apontamento_entrega_id,
+                "p_quantidade": float(quantidade_normalizada),
+                "p_nome_operador": nome_operador.strip(),
+                "p_observacao": observacao.strip(),
+            },
+        ).execute()
+
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da devolução.",
+        )

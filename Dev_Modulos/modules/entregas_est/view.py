@@ -406,7 +406,7 @@ class EntregasEstView(ctk.CTkFrame):
             "dimensao": 60,
             "solicitado": 50,
             "entregue": 50,
-            "falta": 10,
+            "falta": 20,
             "rastreabilidade": 120,
             "estoque": 40,
             "setor": 40,
