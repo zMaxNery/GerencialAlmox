@@ -1,1 +1,1 @@
-"""Visão administrativa dos itens FAB e EST concluídos."""
+"""Módulo administrativo de consulta das requisições concluídas e FAB."""

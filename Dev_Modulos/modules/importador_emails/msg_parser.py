@@ -10,23 +10,30 @@ from pathlib import Path
 import extract_msg
 from bs4 import BeautifulSoup
 
-from modules.importador_emails.models import ParsedEmail, RequestItem, SummaryItem
+from modules.importador_emails.models import (
+    EmailProcessado,
+    ItemRequisicao,
+    ItemResumoTotvs,
+)
 
 
 class MsgParser:
     DETAIL_REQUIRED = {"MATERIAL", "DIMENSAO", "QTDE", "RASTREABILIDADE"}
     SUMMARY_REQUIRED = {"REQUISICAO", "MATERIAL", "OS SO", "OF"}
 
-    def parse(self, path: str | Path) -> ParsedEmail:
+    def parse(self, path: str | Path) -> EmailProcessado:
         msg_path = Path(path)
+
         if not msg_path.exists():
             raise FileNotFoundError(msg_path)
+
         if msg_path.suffix.lower() != ".msg":
             raise ValueError("O arquivo precisa ter extensão .msg.")
 
         message = extract_msg.Message(str(msg_path))
         try:
             html = message.htmlBody
+
             if isinstance(html, bytes):
                 decoded = None
                 for encoding in ("utf-8-sig", "cp1252", "latin1"):
@@ -40,24 +47,25 @@ class MsgParser:
             if not html:
                 raise ValueError("A mensagem não possui corpo HTML com tabelas.")
 
-            subject = self._clean(message.subject)
-            sender = self._clean(message.sender)
-            received_at = self._to_iso(message.date)
+            assunto = self._clean(message.subject)
+            remetente = self._clean(message.sender)
+            recebido_em = self._to_iso(message.date)
         finally:
             message.close()
 
         parsed = self.parse_html(
             html=html,
-            path=msg_path,
-            file_hash=self.calculate_hash(msg_path),
-            subject=subject,
-            sender=sender,
-            received_at=received_at,
+            caminho=msg_path,
+            hash_arquivo=self.calcular_hash(msg_path),
+            assunto=assunto,
+            remetente=remetente,
+            recebido_em=recebido_em,
         )
 
-        if not parsed.request_items:
+        if not parsed.itens_requisicao:
             raise ValueError("Nenhuma tabela detalhada de requisição foi encontrada.")
-        if not parsed.summary_items:
+
+        if not parsed.itens_resumo:
             raise ValueError("Nenhuma tabela de resumo TOTVS foi encontrada.")
 
         return parsed
@@ -65,22 +73,22 @@ class MsgParser:
     def parse_html(
         self,
         html: str,
-        path: Path,
-        file_hash: str,
-        subject: str,
-        sender: str,
-        received_at: str | None,
-    ) -> ParsedEmail:
+        caminho: Path,
+        hash_arquivo: str,
+        assunto: str,
+        remetente: str,
+        recebido_em: str | None,
+    ) -> EmailProcessado:
         soup = BeautifulSoup(html, "lxml")
         all_text = self._normalize(soup.get_text(" ", strip=True))
 
-        stock_location = self._detect_stock_location(all_text)
-        movement_type = self._detect_movement_type(subject, stock_location)
+        local_estoque = self._detect_stock_location(all_text)
+        tipo_movimento = self._detect_movement_type(assunto, local_estoque)
 
-        request_items: list[RequestItem] = []
-        summary_items: list[SummaryItem] = []
+        itens_requisicao: list[ItemRequisicao] = []
+        itens_resumo: list[ItemResumoTotvs] = []
 
-        for table_index, table in enumerate(soup.find_all("table"), start=1):
+        for indice_tabela, table in enumerate(soup.find_all("table"), start=1):
             rows = self._extract_rows(table)
             if not rows:
                 continue
@@ -89,10 +97,10 @@ class MsgParser:
             if header_info is None:
                 continue
 
-            header_row_index, table_kind, material_type = header_info
+            header_row_index, table_kind, tipo_material = header_info
             headers = [self._normalize(cell) for cell in rows[header_row_index]]
 
-            for source_row_index, values in enumerate(
+            for indice_linha, values in enumerate(
                 rows[header_row_index + 1 :],
                 start=header_row_index + 2,
             ):
@@ -106,72 +114,73 @@ class MsgParser:
                         item = self._parse_detail_row(
                             headers,
                             padded,
-                            stock_location,
-                            material_type,
-                            table_index,
-                            source_row_index,
+                            local_estoque,
+                            tipo_material,
+                            indice_tabela,
+                            indice_linha,
                         )
                         if item:
-                            request_items.append(item)
+                            itens_requisicao.append(item)
                     else:
                         item = self._parse_summary_row(
                             headers,
                             padded,
-                            stock_location,
-                            material_type,
-                            table_index,
-                            source_row_index,
+                            local_estoque,
+                            tipo_material,
+                            indice_tabela,
+                            indice_linha,
                         )
                         if item:
-                            summary_items.append(item)
+                            itens_resumo.append(item)
                 except Exception as exc:
                     raise ValueError(
-                        f"Falha na tabela {table_index}, linha {source_row_index}: {exc}"
+                        f"Falha na tabela {indice_tabela}, linha {indice_linha}: {exc}"
                     ) from exc
 
-        return ParsedEmail(
-            path=path,
-            file_hash=file_hash,
-            subject=subject,
-            sender=sender,
-            received_at=received_at,
-            stock_location=stock_location,
-            movement_type=movement_type,
-            request_items=request_items,
-            summary_items=summary_items,
+        return EmailProcessado(
+            caminho=caminho,
+            hash_arquivo=hash_arquivo,
+            assunto=assunto,
+            remetente=remetente,
+            recebido_em=recebido_em,
+            local_estoque=local_estoque,
+            tipo_movimento=tipo_movimento,
+            itens_requisicao=itens_requisicao,
+            itens_resumo=itens_resumo,
         )
 
     def _parse_detail_row(
         self,
         headers: list[str],
         values: list[str],
-        stock_location: str,
-        material_type: str,
-        table_index: int,
-        row_index: int,
-    ) -> RequestItem | None:
+        local_estoque: str,
+        tipo_material: str,
+        indice_tabela: int,
+        indice_linha: int,
+    ) -> ItemRequisicao | None:
         material = self._value(headers, values, lambda h: h == "MATERIAL")
+
         if not material or self._normalize(material) in {"TOTAL", "MATERIAL"}:
             return None
 
-        return RequestItem(
-            material_type=material_type,
-            stock_location=stock_location,
+        return ItemRequisicao(
+            tipo_material=tipo_material,
+            local_estoque=local_estoque,
             material=material,
-            dimension=self._value(headers, values, lambda h: h == "DIMENSAO"),
-            quantity=self._parse_decimal(
+            dimensao=self._value(headers, values, lambda h: h == "DIMENSAO"),
+            quantidade=self._parse_decimal(
                 self._value(headers, values, lambda h: h in {"QTDE", "QUANTIDADE"})
             ),
-            traceability=self._value(
+            rastreabilidade=self._value(
                 headers, values, lambda h: h == "RASTREABILIDADE"
             ),
-            request_date=self._parse_date(
+            data_requisicao=self._parse_date(
                 self._value(headers, values, lambda h: h == "DATA")
             ),
-            machine=self._value(headers, values, lambda h: h == "MAQUINA"),
-            location=self._value(headers, values, lambda h: h == "LOCALIZACAO"),
-            sector=self._value(headers, values, lambda h: h == "SETOR"),
-            material_weight_kg=self._parse_decimal(
+            maquina=self._value(headers, values, lambda h: h == "MAQUINA"),
+            localizacao=self._value(headers, values, lambda h: h == "LOCALIZACAO"),
+            setor=self._value(headers, values, lambda h: h == "SETOR"),
+            peso_material_kg=self._parse_decimal(
                 self._value(
                     headers,
                     values,
@@ -179,7 +188,7 @@ class MsgParser:
                     and ("CHAPA" in h or "PERFIL" in h),
                 )
             ),
-            requested_weight_kg=self._parse_decimal(
+            peso_requisitado_kg=self._parse_decimal(
                 self._value(
                     headers,
                     values,
@@ -189,37 +198,38 @@ class MsgParser:
                     prefer_last=True,
                 )
             ),
-            source_table_index=table_index,
-            source_row_index=row_index,
+            indice_tabela_origem=indice_tabela,
+            indice_linha_origem=indice_linha,
         )
 
     def _parse_summary_row(
         self,
         headers: list[str],
         values: list[str],
-        stock_location: str,
-        material_type: str,
-        table_index: int,
-        row_index: int,
-    ) -> SummaryItem | None:
-        request_number = self._value(
+        local_estoque: str,
+        tipo_material: str,
+        indice_tabela: int,
+        indice_linha: int,
+    ) -> ItemResumoTotvs | None:
+        numero_requisicao = self._value(
             headers, values, lambda h: h == "REQUISICAO"
         )
         material = self._value(headers, values, lambda h: h == "MATERIAL")
 
-        if not request_number and not material:
-            return None
-        if self._normalize(request_number) in {"TOTAL", "REQUISICAO"}:
+        if not numero_requisicao and not material:
             return None
 
-        return SummaryItem(
-            material_type=material_type,
-            stock_location=stock_location,
-            request_number=request_number,
+        if self._normalize(numero_requisicao) in {"TOTAL", "REQUISICAO"}:
+            return None
+
+        return ItemResumoTotvs(
+            tipo_material=tipo_material,
+            local_estoque=local_estoque,
+            numero_requisicao=numero_requisicao,
             material=material,
             os_so=self._value(headers, values, lambda h: h == "OS SO"),
-            of_number=self._value(headers, values, lambda h: h == "OF"),
-            material_weight_kg=self._parse_decimal(
+            numero_of=self._value(headers, values, lambda h: h == "OF"),
+            peso_material_kg=self._parse_decimal(
                 self._value(
                     headers,
                     values,
@@ -227,7 +237,7 @@ class MsgParser:
                     and ("CHAPA" in h or "PERFIL" in h),
                 )
             ),
-            requested_weight_kg=self._parse_decimal(
+            peso_requisitado_kg=self._parse_decimal(
                 self._value(
                     headers,
                     values,
@@ -237,8 +247,8 @@ class MsgParser:
                     prefer_last=True,
                 )
             ),
-            source_table_index=table_index,
-            source_row_index=row_index,
+            indice_tabela_origem=indice_tabela,
+            indice_linha_origem=indice_linha,
         )
 
     def _find_header(
@@ -248,33 +258,38 @@ class MsgParser:
             normalized = [self._normalize(value) for value in row]
             normalized_set = set(normalized)
 
-            material_type = ""
+            tipo_material = ""
             if any("PESO CHAPA" in value for value in normalized):
-                material_type = "CHAPA"
+                tipo_material = "CHAPA"
             elif any("PESO PERFIL" in value for value in normalized):
-                material_type = "PERFIL"
+                tipo_material = "PERFIL"
 
-            if not material_type:
+            if not tipo_material:
                 continue
 
             if self.DETAIL_REQUIRED.issubset(normalized_set):
-                return index, "DETAIL", material_type
+                return index, "DETAIL", tipo_material
 
             if self.SUMMARY_REQUIRED.issubset(normalized_set):
-                return index, "SUMMARY", material_type
+                return index, "SUMMARY", tipo_material
 
         return None
 
     @staticmethod
     def _extract_rows(table) -> list[list[str]]:
         rows: list[list[str]] = []
+
         for tr in table.find_all("tr"):
             cells = tr.find_all(["th", "td"], recursive=False)
             if not cells:
                 cells = tr.find_all(["th", "td"])
-            values = [" ".join(cell.get_text(" ", strip=True).split()) for cell in cells]
+
+            values = [
+                " ".join(cell.get_text(" ", strip=True).split()) for cell in cells
+            ]
             if values:
                 rows.append(values)
+
         return rows
 
     def _value(
@@ -287,16 +302,20 @@ class MsgParser:
         indexes = [index for index, header in enumerate(headers) if predicate(header)]
         if not indexes:
             return ""
+
         index = indexes[-1] if prefer_last else indexes[0]
         return self._clean(values[index] if index < len(values) else "")
 
     @staticmethod
-    def calculate_hash(path: Path) -> str:
+    def calcular_hash(path: Path) -> str:
         hasher = hashlib.sha256()
         with path.open("rb") as stream:
             while chunk := stream.read(1024 * 1024):
                 hasher.update(chunk)
         return hasher.hexdigest()
+
+    # Mantém o nome antigo para chamadas externas já existentes.
+    calculate_hash = calcular_hash
 
     def _detect_stock_location(self, normalized_text: str) -> str:
         if "LOCAL DE ESTOQUE EST" in normalized_text:
@@ -307,16 +326,19 @@ class MsgParser:
 
     def _detect_movement_type(self, subject: str, stock_location: str) -> str:
         normalized = self._normalize(subject)
+
         if "RETALHO" in normalized:
             return "RETALHO"
         if "PECA INTEIRA" in normalized or "BARRA EM ESTOQUE" in normalized:
             return "PECA_INTEIRA"
+
         return "RETALHO" if stock_location == "FAB" else "PECA_INTEIRA"
 
     @staticmethod
     def _parse_decimal(value: str) -> Decimal:
         cleaned = value.strip().replace("R$", "").replace("kg", "").replace("KG", "")
         cleaned = re.sub(r"\s+", "", cleaned)
+
         if not cleaned or cleaned == "-":
             return Decimal("0")
 
@@ -324,6 +346,7 @@ class MsgParser:
             cleaned = cleaned.replace(".", "").replace(",", ".")
 
         cleaned = re.sub(r"[^0-9.\-]", "", cleaned)
+
         try:
             return Decimal(cleaned or "0")
         except InvalidOperation as exc:

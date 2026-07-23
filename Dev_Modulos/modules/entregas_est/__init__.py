@@ -1,1 +1,1 @@
-"""Apontamento das entregas de materiais EST."""
+"""Módulo operacional de apontamento das entregas EST."""

@@ -7,113 +7,119 @@ from typing import Any
 
 
 @dataclass(slots=True)
-class RequestItem:
-    material_type: str
-    stock_location: str
+class ItemRequisicao:
+    tipo_material: str
+    local_estoque: str
     material: str
-    dimension: str
-    quantity: Decimal
-    traceability: str
-    request_date: str | None
-    machine: str
-    location: str
-    sector: str
-    material_weight_kg: Decimal
-    requested_weight_kg: Decimal
-    source_table_index: int
-    source_row_index: int
+    dimensao: str
+    quantidade: Decimal
+    rastreabilidade: str
+    data_requisicao: str | None
+    maquina: str
+    localizacao: str
+    setor: str
+    peso_material_kg: Decimal
+    peso_requisitado_kg: Decimal
+    indice_tabela_origem: int
+    indice_linha_origem: int
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "material_type": self.material_type,
-            "stock_location": self.stock_location,
+            "tipo_material": self.tipo_material,
+            "local_estoque": self.local_estoque,
             "material": self.material,
-            "dimension": self.dimension,
-            "quantity": float(self.quantity),
-            "traceability": self.traceability,
-            "request_date": self.request_date,
-            "machine": self.machine,
-            "location": self.location,
-            "sector": self.sector,
-            "material_weight_kg": float(self.material_weight_kg),
-            "requested_weight_kg": float(self.requested_weight_kg),
-            "source_table_index": self.source_table_index,
-            "source_row_index": self.source_row_index,
+            "dimensao": self.dimensao,
+            "quantidade": float(self.quantidade),
+            "rastreabilidade": self.rastreabilidade,
+            "data_requisicao": self.data_requisicao,
+            "maquina": self.maquina,
+            "localizacao": self.localizacao,
+            "setor": self.setor,
+            "peso_material_kg": float(self.peso_material_kg),
+            "peso_requisitado_kg": float(self.peso_requisitado_kg),
+            "indice_tabela_origem": self.indice_tabela_origem,
+            "indice_linha_origem": self.indice_linha_origem,
         }
 
 
 @dataclass(slots=True)
-class SummaryItem:
-    material_type: str
-    stock_location: str
-    request_number: str
+class ItemResumoTotvs:
+    tipo_material: str
+    local_estoque: str
+    numero_requisicao: str
     material: str
     os_so: str
-    of_number: str
-    material_weight_kg: Decimal
-    requested_weight_kg: Decimal
-    source_table_index: int
-    source_row_index: int
+    numero_of: str
+    peso_material_kg: Decimal
+    peso_requisitado_kg: Decimal
+    indice_tabela_origem: int
+    indice_linha_origem: int
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "material_type": self.material_type,
-            "stock_location": self.stock_location,
-            "request_number": self.request_number,
+            "tipo_material": self.tipo_material,
+            "local_estoque": self.local_estoque,
+            "numero_requisicao": self.numero_requisicao,
             "material": self.material,
             "os_so": self.os_so,
-            "of_number": self.of_number,
-            "material_weight_kg": float(self.material_weight_kg),
-            "requested_weight_kg": float(self.requested_weight_kg),
-            "source_table_index": self.source_table_index,
-            "source_row_index": self.source_row_index,
+            "numero_of": self.numero_of,
+            "peso_material_kg": float(self.peso_material_kg),
+            "peso_requisitado_kg": float(self.peso_requisitado_kg),
+            "indice_tabela_origem": self.indice_tabela_origem,
+            "indice_linha_origem": self.indice_linha_origem,
         }
 
 
 @dataclass(slots=True)
-class ParsedEmail:
-    path: Path
-    file_hash: str
-    subject: str
-    sender: str
-    received_at: str | None
-    stock_location: str
-    movement_type: str
-    request_items: list[RequestItem] = field(default_factory=list)
-    summary_items: list[SummaryItem] = field(default_factory=list)
+class EmailProcessado:
+    caminho: Path
+    hash_arquivo: str
+    assunto: str
+    remetente: str
+    recebido_em: str | None
+    local_estoque: str
+    tipo_movimento: str
+    itens_requisicao: list[ItemRequisicao] = field(default_factory=list)
+    itens_resumo: list[ItemResumoTotvs] = field(default_factory=list)
 
     @property
-    def detail_weight(self) -> Decimal:
+    def peso_detalhes(self) -> Decimal:
         return sum(
-            (item.requested_weight_kg for item in self.request_items),
+            (item.peso_requisitado_kg for item in self.itens_requisicao),
             start=Decimal("0"),
         )
 
     @property
-    def summary_weight(self) -> Decimal:
+    def peso_resumos(self) -> Decimal:
         return sum(
-            (item.requested_weight_kg for item in self.summary_items),
+            (item.peso_requisitado_kg for item in self.itens_resumo),
             start=Decimal("0"),
         )
 
     @property
-    def weight_difference(self) -> Decimal:
-        return abs(self.detail_weight - self.summary_weight)
+    def diferenca_peso(self) -> Decimal:
+        return abs(self.peso_detalhes - self.peso_resumos)
 
-    def email_payload(self, imported_by: str) -> dict[str, Any]:
+    def payload_email(self, importado_por: str) -> dict[str, Any]:
         return {
-            "file_hash": self.file_hash,
-            "file_name": self.path.name,
-            "subject": self.subject,
-            "sender": self.sender,
-            "received_at": self.received_at,
-            "stock_location": self.stock_location,
-            "movement_type": self.movement_type,
-            "imported_by": imported_by,
+            "hash_arquivo": self.hash_arquivo,
+            "nome_arquivo": self.caminho.name,
+            "assunto": self.assunto,
+            "remetente": self.remetente,
+            "recebido_em": self.recebido_em,
+            "local_estoque": self.local_estoque,
+            "tipo_movimento": self.tipo_movimento,
+            "importado_por": importado_por,
         }
 
-    def request_payload(self) -> list[dict[str, Any]]:
-        return [item.to_dict() for item in self.request_items]
+    def payload_itens_requisicao(self) -> list[dict[str, Any]]:
+        return [item.to_dict() for item in self.itens_requisicao]
 
-    def summary_payload(self) -> list[dict[str, Any]]:
-        return [item.to_dict() for item in self.summary_items]
+    def payload_itens_resumo(self) -> list[dict[str, Any]]:
+        return [item.to_dict() for item in self.itens_resumo]
+
+
+# Apelidos temporários para facilitar a transição de imports antigos.
+RequestItem = ItemRequisicao
+SummaryItem = ItemResumoTotvs
+ParsedEmail = EmailProcessado

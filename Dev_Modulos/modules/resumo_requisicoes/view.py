@@ -26,6 +26,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
 
     def __init__(self, parent):
         super().__init__(parent, corner_radius=0)
+
         self.repository: AlmoxRepository | None = None
         self.all_rows: list[dict] = []
 
@@ -46,13 +47,16 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             text="Resumo de requisições",
             font=ctk.CTkFont(size=25, weight="bold"),
         ).pack(side="left")
+
         ctk.CTkButton(header, text="Atualizar", command=self.refresh).pack(side="right")
 
     def _build_filters(self) -> None:
         filters = ctk.CTkFrame(self)
         filters.grid(row=1, column=0, sticky="ew", padx=20, pady=8)
 
-        ctk.CTkLabel(filters, text="Buscar:").pack(side="left", padx=(10, 5), pady=10)
+        ctk.CTkLabel(filters, text="Buscar:").pack(
+            side="left", padx=(10, 5), pady=10
+        )
         self.search_entry = ctk.CTkEntry(
             filters,
             width=320,
@@ -61,7 +65,9 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         self.search_entry.pack(side="left", padx=5, pady=10)
         self.search_entry.bind("<KeyRelease>", lambda _event: self._apply_filter())
 
-        ctk.CTkLabel(filters, text="Origem:").pack(side="left", padx=(20, 5), pady=10)
+        ctk.CTkLabel(filters, text="Origem:").pack(
+            side="left", padx=(20, 5), pady=10
+        )
         self.origin_filter = ctk.CTkOptionMenu(
             filters,
             values=["TODOS", "FAB", "EST"],
@@ -79,6 +85,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         container.grid_rowconfigure(0, weight=1)
 
         self.tree = ttk.Treeview(container, columns=self.COLUMNS, show="headings")
+
         labels = {
             "origem": "Origem",
             "data": "Data",
@@ -107,15 +114,18 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             "setor": 100,
             "conclusao": 145,
         }
+
         for column in self.COLUMNS:
             self.tree.heading(column, text=labels[column])
             self.tree.column(column, width=widths[column], anchor="center")
+
         self.tree.column("material", anchor="w")
         self.tree.column("dimensao", anchor="w")
 
         y_scroll = ttk.Scrollbar(container, orient="vertical", command=self.tree.yview)
         x_scroll = ttk.Scrollbar(container, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
+
         self.tree.grid(row=0, column=0, sticky="nsew")
         y_scroll.grid(row=0, column=1, sticky="ns")
         x_scroll.grid(row=1, column=0, sticky="ew")
@@ -128,31 +138,34 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         except Exception as exc:
             messagebox.showerror("Visão administrativa", str(exc))
             return
+
         self._apply_filter()
 
     def _apply_filter(self) -> None:
         search = self.search_entry.get().strip().lower()
         origin = self.origin_filter.get()
-
         filtered: list[dict] = []
+
         for row in self.all_rows:
-            if origin != "TODOS" and row.get("stock_location") != origin:
+            if origin != "TODOS" and row.get("local_estoque") != origin:
                 continue
 
             searchable = " ".join(
                 str(row.get(field) or "")
                 for field in (
                     "material",
-                    "dimension",
-                    "traceability",
-                    "machine",
-                    "location",
-                    "sector",
-                    "email_subject",
+                    "dimensao",
+                    "rastreabilidade",
+                    "maquina",
+                    "localizacao",
+                    "setor",
+                    "assunto_email",
                 )
             ).lower()
+
             if search and search not in searchable:
                 continue
+
             filtered.append(row)
 
         for item_id in self.tree.get_children():
@@ -163,18 +176,18 @@ class VisaoAdministrativaView(ctk.CTkFrame):
                 "",
                 "end",
                 values=(
-                    row.get("stock_location") or "",
-                    row.get("request_date") or "",
-                    row.get("material_type") or "",
+                    row.get("local_estoque") or "",
+                    row.get("data_requisicao") or "",
+                    row.get("tipo_material") or "",
                     row.get("material") or "",
-                    row.get("dimension") or "",
-                    self._fmt(row.get("quantity_requested")),
-                    self._fmt(row.get("quantity_delivered")),
-                    row.get("traceability") or "",
-                    row.get("machine") or "",
-                    row.get("location") or "",
-                    row.get("sector") or "",
-                    row.get("completed_at") or "Não se aplica (FAB)",
+                    row.get("dimensao") or "",
+                    self._fmt(row.get("quantidade_solicitada")),
+                    self._fmt(row.get("quantidade_entregue")),
+                    row.get("rastreabilidade") or "",
+                    row.get("maquina") or "",
+                    row.get("localizacao") or "",
+                    row.get("setor") or "",
+                    row.get("concluido_em") or "Não se aplica (FAB)",
                 ),
             )
 
@@ -184,5 +197,6 @@ class VisaoAdministrativaView(ctk.CTkFrame):
     def _fmt(value) -> str:
         if value in (None, ""):
             return "0"
+
         number = Decimal(str(value))
         return f"{number:.3f}".rstrip("0").rstrip(".") or "0"

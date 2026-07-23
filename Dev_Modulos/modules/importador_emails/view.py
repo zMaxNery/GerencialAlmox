@@ -9,7 +9,7 @@ from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 
 from core.almox_repository import AlmoxRepository
-from modules.importador_emails.models import ParsedEmail
+from modules.importador_emails.models import EmailProcessado
 from modules.importador_emails.msg_parser import MsgParser
 
 try:
@@ -31,6 +31,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
 
     def __init__(self, parent):
         super().__init__(parent, corner_radius=0)
+
         self.parser = MsgParser()
         self.repository: AlmoxRepository | None = None
         self.files: dict[str, dict] = {}
@@ -82,6 +83,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
             show="headings",
             selectmode="browse",
         )
+
         headings = {
             "arquivo": "Arquivo",
             "local": "Local",
@@ -100,9 +102,11 @@ class ImportadorEmailsView(ctk.CTkFrame):
             "peso": 100,
             "status": 250,
         }
+
         for column in self.COLUMNS:
             self.tree.heading(column, text=headings[column])
             self.tree.column(column, width=widths[column], anchor="center")
+
         self.tree.column("arquivo", anchor="w")
         self.tree.column("status", anchor="w")
 
@@ -114,13 +118,16 @@ class ImportadorEmailsView(ctk.CTkFrame):
     def _enable_drag_drop(self) -> None:
         if windnd is None:
             return
+
         try:
-            windnd.hook_dropfiles(self.drop_area, func=self._on_drop_files)
+            # Usa o Treeview como área de soltura; ele existe e possui handle nativo.
+            windnd.hook_dropfiles(self.tree, func=self._on_drop_files)
         except Exception as exc:
             self.status_label.configure(text=f"Drag-and-drop indisponível: {exc}")
 
     def _on_drop_files(self, raw_paths) -> None:
         decoded: list[str] = []
+
         for raw_path in raw_paths:
             if isinstance(raw_path, bytes):
                 try:
@@ -129,6 +136,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
                     decoded.append(raw_path.decode("mbcs", errors="replace"))
             else:
                 decoded.append(str(raw_path))
+
         self.after(0, lambda: self._add_files(decoded))
 
     def _select_files(self) -> None:
@@ -143,6 +151,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
             path = Path(raw_path)
             if path.suffix.lower() != ".msg":
                 continue
+
             key = str(path.resolve())
             if key not in self.files:
                 self.files[key] = {
@@ -150,6 +159,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
                     "parsed": None,
                     "status": "Aguardando análise",
                 }
+
         self._refresh_table()
 
     def _analyze_all(self) -> None:
@@ -161,15 +171,17 @@ class ImportadorEmailsView(ctk.CTkFrame):
             try:
                 parsed = self.parser.parse(record["path"])
                 record["parsed"] = parsed
-                if parsed.weight_difference > Decimal("0.01"):
+
+                if parsed.diferenca_peso > Decimal("0.01"):
                     record["status"] = (
-                        f"Válido; diferença de peso {parsed.weight_difference:.3f} kg"
+                        f"Válido; diferença de peso {parsed.diferenca_peso:.3f} kg"
                     )
                 else:
                     record["status"] = "Válido"
             except Exception as exc:
                 record["parsed"] = None
                 record["status"] = f"Erro: {exc}"
+
             self._refresh_table()
             self.update_idletasks()
 
@@ -191,34 +203,42 @@ class ImportadorEmailsView(ctk.CTkFrame):
             messagebox.showerror("Supabase", str(exc))
             return
 
-        imported_by = f"{getpass.getuser()}@{socket.gethostname()}"
-        imported = 0
-        duplicates = 0
-        errors = 0
+        importado_por = f"{getpass.getuser()}@{socket.gethostname()}"
+        importados = 0
+        duplicados = 0
+        erros = 0
 
         for record in valid_records:
-            parsed: ParsedEmail = record["parsed"]
+            parsed: EmailProcessado = record["parsed"]
+
             try:
                 result = repository.importar_email(
-                    parsed.email_payload(imported_by),
-                    parsed.request_payload(),
-                    parsed.summary_payload(),
+                    parsed.payload_email(importado_por),
+                    parsed.payload_itens_requisicao(),
+                    parsed.payload_itens_resumo(),
                 )
+
                 status = str(result.get("status", "")).upper()
-                if status == "DUPLICATE":
+                if status == "DUPLICADO":
                     record["status"] = "Duplicado: já importado"
-                    duplicates += 1
+                    duplicados += 1
                 else:
-                    record["status"] = f"Importado (ID {result.get('import_id')})"
-                    imported += 1
+                    record["status"] = (
+                        f"Importado (ID {result.get('importacao_id')})"
+                    )
+                    importados += 1
             except Exception as exc:
                 record["status"] = f"Erro ao importar: {exc}"
-                errors += 1
+                erros += 1
+
             self._refresh_table()
             self.update_idletasks()
 
         self.status_label.configure(
-            text=f"Importados: {imported} | Duplicados: {duplicates} | Erros: {errors}"
+            text=(
+                f"Importados: {importados} | Duplicados: {duplicados} | "
+                f"Erros: {erros}"
+            )
         )
 
     def _get_repository(self) -> AlmoxRepository:
@@ -236,15 +256,16 @@ class ImportadorEmailsView(ctk.CTkFrame):
             self.tree.delete(item_id)
 
         for key, record in self.files.items():
-            parsed: ParsedEmail | None = record["parsed"]
+            parsed: EmailProcessado | None = record["parsed"]
+
             if parsed:
                 values = (
                     record["path"].name,
-                    parsed.stock_location,
-                    parsed.movement_type,
-                    len(parsed.request_items),
-                    len(parsed.summary_items),
-                    f"{parsed.detail_weight:.3f}",
+                    parsed.local_estoque,
+                    parsed.tipo_movimento,
+                    len(parsed.itens_requisicao),
+                    len(parsed.itens_resumo),
+                    f"{parsed.peso_detalhes:.3f}",
                     record["status"],
                 )
             else:
@@ -257,4 +278,5 @@ class ImportadorEmailsView(ctk.CTkFrame):
                     "-",
                     record["status"],
                 )
+
             self.tree.insert("", "end", iid=key, values=values)

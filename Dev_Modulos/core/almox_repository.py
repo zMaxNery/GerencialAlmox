@@ -7,40 +7,40 @@ from core.supabase_client import get_supabase
 
 
 class AlmoxRepository:
+    """Acesso centralizado às tabelas, visões e RPCs do Supabase."""
+
     def __init__(self) -> None:
         self.client = get_supabase()
 
     def testar_conexao(self) -> None:
-        self.client.table("email_imports").select("id").limit(1).execute()
+        self.client.table("importacoes_email").select("id").limit(1).execute()
 
     def importar_email(
         self,
         email_payload: dict[str, Any],
-        request_items: list[dict[str, Any]],
-        summary_items: list[dict[str, Any]],
+        itens_requisicao: list[dict[str, Any]],
+        itens_resumo: list[dict[str, Any]],
     ) -> dict[str, Any]:
         response = self.client.rpc(
-            "import_email",
+            "importar_email",
             {
                 "p_email": email_payload,
-                "p_request_items": request_items,
-                "p_summary_items": summary_items,
+                "p_itens_requisicao": itens_requisicao,
+                "p_itens_resumo": itens_resumo,
             },
         ).execute()
 
-        data = response.data
-        if isinstance(data, list) and data:
-            return data[0]
-        if isinstance(data, dict):
-            return data
-        raise RuntimeError("O Supabase não retornou o resultado da importação.")
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da importação.",
+        )
 
     def listar_pendencias_est(self) -> list[dict[str, Any]]:
         response = (
-            self.client.table("vw_operator_pending_est")
+            self.client.table("vw_pendencias_est_operador")
             .select("*")
-            .order("request_date", desc=False)
-            .order("request_item_id", desc=False)
+            .order("data_requisicao", desc=False)
+            .order("item_requisicao_id", desc=False)
             .limit(2000)
             .execute()
         )
@@ -48,40 +48,50 @@ class AlmoxRepository:
 
     def registrar_entrega(
         self,
-        request_item_id: int,
-        quantity: Decimal | str | float,
-        operator_name: str,
-        note: str | None = None,
+        item_requisicao_id: int,
+        quantidade: Decimal | str | float,
+        nome_operador: str,
+        observacao: str | None = None,
     ) -> dict[str, Any]:
         try:
-            normalized_quantity = Decimal(str(quantity).replace(",", "."))
+            quantidade_normalizada = Decimal(str(quantidade).replace(",", "."))
         except InvalidOperation as exc:
             raise ValueError("Quantidade entregue inválida.") from exc
 
         response = self.client.rpc(
-            "register_delivery",
+            "registrar_entrega",
             {
-                "p_request_item_id": request_item_id,
-                "p_quantity": float(normalized_quantity),
-                "p_operator_name": operator_name.strip(),
-                "p_note": note.strip() if note else None,
+                "p_item_requisicao_id": item_requisicao_id,
+                "p_quantidade": float(quantidade_normalizada),
+                "p_nome_operador": nome_operador.strip(),
+                "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
 
-        data = response.data
-        if isinstance(data, list) and data:
-            return data[0]
-        if isinstance(data, dict):
-            return data
-        raise RuntimeError("O Supabase não retornou o resultado do apontamento.")
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado do apontamento.",
+        )
 
     def listar_visao_administrativa(self) -> list[dict[str, Any]]:
         response = (
-            self.client.table("vw_admin_requests")
+            self.client.table("vw_requisicoes_administrativo")
             .select("*")
-            .order("request_date", desc=True)
-            .order("request_item_id", desc=True)
+            .order("data_requisicao", desc=True)
+            .order("item_requisicao_id", desc=True)
             .limit(3000)
             .execute()
         )
         return response.data or []
+
+    @staticmethod
+    def _obter_resultado_rpc(data: Any, mensagem_erro: str) -> dict[str, Any]:
+        if isinstance(data, list) and data:
+            resultado = data[0]
+            if isinstance(resultado, dict):
+                return resultado
+
+        if isinstance(data, dict):
+            return data
+
+        raise RuntimeError(mensagem_erro)
