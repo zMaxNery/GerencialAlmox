@@ -7,6 +7,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 import customtkinter as ctk
+import sys
 
 from core.almox_repository import AlmoxRepository
 from modules.importador_emails.models import EmailProcessado
@@ -42,7 +43,8 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self._build_header()
         self._build_actions()
         self._build_table()
-        self._enable_drag_drop()
+
+        self.after(200, self._enable_drag_drop)
 
     def _build_header(self) -> None:
         ctk.CTkLabel(
@@ -116,28 +118,61 @@ class ImportadorEmailsView(ctk.CTkFrame):
         scrollbar.grid(row=0, column=1, sticky="ns")
 
     def _enable_drag_drop(self) -> None:
+        if sys.platform != "win32":
+            return
+    
         if windnd is None:
+            self.status_label.configure(
+                text="Drag-and-drop indisponível; use Selecionar arquivos."
+            )
             return
 
         try:
-            # Usa o Treeview como área de soltura; ele existe e possui handle nativo.
-            windnd.hook_dropfiles(self.tree, func=self._on_drop_files)
+            self.update_idletasks()
+
+            # O destino correto é self.tree.
+            # self.drop_area não existe nesta interface.
+            windnd.hook_dropfiles(
+                self.tree,
+                func=self._on_drop_files,
+                force_unicode=True,
+            )
+
         except Exception as exc:
-            self.status_label.configure(text=f"Drag-and-drop indisponível: {exc}")
+            # Não deixa uma falha opcional derrubar todo o módulo.
+            self.status_label.configure(
+                text=f"Drag-and-drop indisponível: {exc}"
+            )
 
-    def _on_drop_files(self, raw_paths) -> None:
-        decoded: list[str] = []
+    def _on_drop_files(self, dropped_paths) -> None:
+        paths: list[str] = []
 
-        for raw_path in raw_paths:
-            if isinstance(raw_path, bytes):
-                try:
-                    decoded.append(raw_path.decode("utf-8"))
-                except UnicodeDecodeError:
-                    decoded.append(raw_path.decode("mbcs", errors="replace"))
-            else:
-                decoded.append(str(raw_path))
+        for raw_path in dropped_paths:
+            try:
+                if isinstance(raw_path, bytes):
+                    path_text = raw_path.decode(
+                        "mbcs",
+                        errors="replace",
+                    )
+                else:
+                    path_text = str(raw_path)
 
-        self.after(0, lambda: self._add_files(decoded))
+                # Remove aspas eventualmente adicionadas pelo Windows.
+                path_text = path_text.strip().strip('"')
+
+                if path_text:
+                    paths.append(path_text)
+
+            except Exception:
+                continue
+
+        if paths:
+            self.after(
+                0,
+                lambda selected_paths=paths: self._add_files(
+                    selected_paths
+                ),
+            )
 
     def _select_files(self) -> None:
         paths = filedialog.askopenfilenames(
@@ -147,21 +182,58 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self._add_files(paths)
 
     def _add_files(self, paths) -> None:
-        for raw_path in paths:
-            path = Path(raw_path)
-            if path.suffix.lower() != ".msg":
-                continue
+        adicionados = 0
+        ignorados = 0
+        duplicados = 0
 
-            key = str(path.resolve())
-            if key not in self.files:
+        for raw_path in paths:
+            try:
+                path = Path(str(raw_path).strip().strip('"'))
+
+                if not path.exists() or not path.is_file():
+                    ignorados += 1
+                    continue
+
+                if path.suffix.lower() != ".msg":
+                    ignorados += 1
+                    continue
+
+                key = str(path.resolve())
+
+                if key in self.files:
+                    duplicados += 1
+                    continue
+
                 self.files[key] = {
                     "path": path,
                     "parsed": None,
                     "status": "Aguardando análise",
                 }
 
+                adicionados += 1
+
+            except (OSError, ValueError):
+                ignorados += 1
+
         self._refresh_table()
 
+        partes = []
+
+        if adicionados:
+            partes.append(f"{adicionados} arquivo(s) adicionado(s)")
+
+        if duplicados:
+            partes.append(f"{duplicados} duplicado(s)")
+
+        if ignorados:
+            partes.append(f"{ignorados} ignorado(s)")
+
+        if partes:
+            self.status_label.configure(text=" | ".join(partes))
+        else:
+            self.status_label.configure(
+                text="Nenhum arquivo .msg válido foi adicionado."
+            )
     def _analyze_all(self) -> None:
         if not self.files:
             messagebox.showinfo("Importador", "Selecione pelo menos um arquivo .msg.")
