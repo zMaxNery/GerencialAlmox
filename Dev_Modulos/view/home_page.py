@@ -1,9 +1,22 @@
 import customtkinter as ctk
+from tkinterdnd2 import TkinterDnD
+
 from core.module_loader import ModuleLoader
 
 class HomePage(ctk.CTk):
     def __init__(self):
         super().__init__()
+
+        self.drag_drop_disponivel = False
+        self.drag_drop_erro: str | None = None
+
+        try:
+            self.tkdnd_version = TkinterDnD.require(self)
+            self.drag_drop_disponivel = True
+
+        except Exception as exc:
+            self.drag_drop_erro = str(exc)
+            print(f"Drag-and-drop indisponível: {exc}")
 
         # Configurações gerais da tela
         ctk.set_appearance_mode("Dark")

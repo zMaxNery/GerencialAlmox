@@ -7,17 +7,15 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 import customtkinter as ctk
-import sys
 
 from core.almox_repository import AlmoxRepository
 from modules.importador_emails.models import EmailProcessado
 from modules.importador_emails.msg_parser import MsgParser
 
 try:
-    import windnd
-except ImportError:  # O botão de seleção continua funcionando sem drag-and-drop.
-    windnd = None
-
+    from tkinterdnd2 import DND_FILES
+except ImportError:
+    DND_FILES = None
 
 class ImportadorEmailsView(ctk.CTkFrame):
     COLUMNS = (
@@ -37,6 +35,8 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self.repository: AlmoxRepository | None = None
         self.files: dict[str, dict] = {}
 
+        self.drag_drop_ativo = False
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(3, weight=1)
 
@@ -44,12 +44,12 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self._build_actions()
         self._build_table()
 
-        self.after(200, self._enable_drag_drop)
+        self.after_idle(self._enable_drag_drop)
 
     def _build_header(self) -> None:
         ctk.CTkLabel(
             self,
-            text="Importador de requisições (.msg)",
+            text="Importador de requisições",
             font=ctk.CTkFont(size=25, weight="bold"),
         ).grid(row=0, column=0, sticky="w", padx=20, pady=(20, 8))
 
@@ -118,61 +118,73 @@ class ImportadorEmailsView(ctk.CTkFrame):
         scrollbar.grid(row=0, column=1, sticky="ns")
 
     def _enable_drag_drop(self) -> None:
-        if sys.platform != "win32":
+        if self.drag_drop_ativo:
             return
-    
-        if windnd is None:
+
+        if DND_FILES is None:
             self.status_label.configure(
-                text="Drag-and-drop indisponível; use Selecionar arquivos."
+                text=(
+                    "Drag-and-drop indisponível. "
+                    "Use o botão Selecionar arquivos."
+                )
+            )
+            return
+
+        root = self.winfo_toplevel()
+
+        if not getattr(root, "drag_drop_disponivel", False):
+            erro = getattr(
+                root,
+                "drag_drop_erro",
+                "tkinterdnd2 não inicializado.",
+            )
+
+            self.status_label.configure(
+                text=f"Drag-and-drop indisponível: {erro}"
             )
             return
 
         try:
-            self.update_idletasks()
+            self.tree.drop_target_register(DND_FILES)
+            self.tree.dnd_bind(
+                "<<Drop>>",
+                self._on_drop_files,
+            )
 
-            # O destino correto é self.tree.
-            # self.drop_area não existe nesta interface.
-            windnd.hook_dropfiles(
-                self.tree,
-                func=self._on_drop_files,
-                force_unicode=True,
+            self.drag_drop_ativo = True
+
+            self.status_label.configure(
+                text=(
+                    "Arraste o email de requisição nessa tela "
+                    "ou clique em Selecionar arquivos."
+                )
             )
 
         except Exception as exc:
-            # Não deixa uma falha opcional derrubar todo o módulo.
             self.status_label.configure(
                 text=f"Drag-and-drop indisponível: {exc}"
             )
 
-    def _on_drop_files(self, dropped_paths) -> None:
-        paths: list[str] = []
+    def _on_drop_files(self, event):
+        try:
+            # event.data é uma lista Tcl.
+            # splitlist preserva caminhos com espaços.
+            paths = self.tree.tk.splitlist(event.data)
 
-        for raw_path in dropped_paths:
-            try:
-                if isinstance(raw_path, bytes):
-                    path_text = raw_path.decode(
-                        "mbcs",
-                        errors="replace",
-                    )
-                else:
-                    path_text = str(raw_path)
+            if not paths:
+                self.status_label.configure(
+                    text="Nenhum arquivo foi recebido."
+                )
+                return getattr(event, "action", "copy")
 
-                # Remove aspas eventualmente adicionadas pelo Windows.
-                path_text = path_text.strip().strip('"')
+            self._add_files(paths)
 
-                if path_text:
-                    paths.append(path_text)
-
-            except Exception:
-                continue
-
-        if paths:
-            self.after(
-                0,
-                lambda selected_paths=paths: self._add_files(
-                    selected_paths
-                ),
+        except Exception as exc:
+            self.status_label.configure(
+                text=f"Erro ao receber arquivos: {exc}"
             )
+
+        return getattr(event, "action", "copy")
 
     def _select_files(self) -> None:
         paths = filedialog.askopenfilenames(
@@ -236,7 +248,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
             )
     def _analyze_all(self) -> None:
         if not self.files:
-            messagebox.showinfo("Importador", "Selecione pelo menos um arquivo .msg.")
+            messagebox.showinfo("Importador", "Selecione pelo menos um arquivo de requisição.")
             return
 
         for record in self.files.values():
@@ -265,7 +277,7 @@ class ImportadorEmailsView(ctk.CTkFrame):
     def _import_all(self) -> None:
         valid_records = [record for record in self.files.values() if record["parsed"]]
         if not valid_records:
-            messagebox.showinfo("Importador", "Analise os arquivos antes de importar.")
+            messagebox.showinfo("Importador", "Faça a analise dos arquivos antes de importar.")
             return
 
         try:
