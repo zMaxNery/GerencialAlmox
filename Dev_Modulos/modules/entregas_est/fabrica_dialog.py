@@ -43,7 +43,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         self.modo_var = ctk.StringVar(value=self.OPCAO_SOMENTE)
 
         self.title("Usar material em fábrica")
-        self.geometry("690x600")
+        self.geometry("800x600")
         self.minsize(650, 560)
         self.transient(parent.winfo_toplevel())
         self.grab_set()
@@ -287,16 +287,18 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             self.quantidade_label.configure(text="Quantidade a usar da fábrica:")
             self.instrucao_label.configure(
                 text=(
-                    "Informe quanto do saldo da fábrica será usado. "
-                    "Pode ser menor que o saldo disponível e gerar uma entrega parcial."
+                    "Informe quanto do saldo\n"
+                    "da fábrica será usado. "
                 )
             )
         else:
             self.quantidade_label.configure(text="Quantidade nova enviada do estoque:")
             self.instrucao_label.configure(
                 text=(
-                    "O sistema usará primeiro todo o saldo possível da fábrica. "
-                    "Informe apenas quanto será enviado como material novo."
+                    "O sistema usará primeiro\n"
+                    "todo o saldo possível da fábrica.\n\n"
+                    "Informe apenas quanto será\n"
+                    "enviado como material novo."
                 )
             )
 
