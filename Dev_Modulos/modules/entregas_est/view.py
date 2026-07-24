@@ -346,7 +346,23 @@ class EntregasEstView(ctk.CTkFrame):
             columnspan=3,
             sticky="ew",
             padx=12,
-            pady=(4, 12),
+            pady=(4, 6),
+        )
+
+        ctk.CTkButton(
+            painel,
+            text="Verificar material em fábrica",
+            height=42,
+            fg_color="#557A95",
+            hover_color="#2F80ED",
+            command=self.verificar_material_fabrica,
+        ).grid(
+            row=14,
+            column=0,
+            columnspan=3,
+            sticky="ew",
+            padx=12,
+            pady=(0, 12),
         )
 
     def _build_table(self, parent) -> None:
@@ -616,8 +632,8 @@ class EntregasEstView(ctk.CTkFrame):
         self.selected_label.configure(
             text=(
                 f"{row.get('material', '')} | "
-                f"{row.get('dimensao', '')}\n"
-                f"Falta: {self._fmt(row.get('quantidade_restante'))}"
+                f"{row.get('rastreabilidade', '')}\n"
+                f"Pendente para entrega: {self._fmt(row.get('quantidade_restante'))}"
             )
         )
 
@@ -686,54 +702,18 @@ class EntregasEstView(ctk.CTkFrame):
         self._apply_filters()
 
     def register_delivery(self) -> None:
-        selected = self.tree.selection()
+        dados = self._obter_dados_apontamento()
 
-        if not selected:
-            messagebox.showinfo(
-                "Entrega de MP",
-                "Selecione um item da lista.",
-            )
+        if dados is None:
             return
 
-        nome_operador = self.operator_entry.get().strip()
-
-        if not nome_operador:
-            messagebox.showinfo(
-                "Entrega de MP",
-                "Informe o nome do operador.",
-            )
-            return
+        row, quantidade, nome_operador = dados
 
         try:
-            texto_quantidade = (
-                self.quantidade_var.get()
-                .strip()
-                .replace(",", ".")
-            )
+            if self.repository is None:
+                self.repository = AlmoxRepository()
 
-            quantidade = Decimal(texto_quantidade)
-
-            if quantidade <= 0:
-                raise InvalidOperation
-
-        except (InvalidOperation, ValueError):
-            messagebox.showerror(
-                "Entrega de MP",
-                "Digite uma quantidade maior que zero.",
-            )
-            return
-
-        row = self.rows.get(selected[0])
-
-        if row is None:
-            messagebox.showerror(
-                "Entrega de MP",
-                "O item selecionado não está mais disponível.",
-            )
-            return
-
-        try:
-            result = self.repository.registrar_entrega(
+            resultado = self.repository.registrar_entrega(
                 item_requisicao_id=int(row["item_requisicao_id"]),
                 quantidade=quantidade,
                 nome_operador=nome_operador,
@@ -745,18 +725,30 @@ class EntregasEstView(ctk.CTkFrame):
             self.refresh()
             return
 
-        messagebox.showinfo(
-            "Entrega de MP",
-            (
-                "Entrega registrada.\n"
-                "Quantidade restante: "
-                f"{self._fmt(result.get('quantidade_restante'))}"
-            ),
+        quantidade_excedente = Decimal(
+            str(resultado.get("quantidade_excedente") or 0)
         )
 
-        self.quantidade_var.set("")
-        self.note_entry.delete(0, "end")
-        self.refresh()
+        mensagem = (
+            "Entrega registrada.\n"
+            f"Aplicado à requisição: "
+            f"{self._fmt(resultado.get('quantidade_entregue'))}\n"
+            f"Quantidade restante: "
+            f"{self._fmt(resultado.get('quantidade_restante'))}"
+        )
+
+        if quantidade_excedente > 0:
+            mensagem += (
+                "\n\nExcedente enviado para Materiais em fábrica: "
+                f"{self._fmt(quantidade_excedente)}"
+            )
+
+        messagebox.showinfo(
+            "Entrega de MP",
+            mensagem,
+        )
+
+        self._limpar_apos_apontamento()
 
     def _unique_values(self, field: str) -> list[str]:
         return sorted(
@@ -767,6 +759,199 @@ class EntregasEstView(ctk.CTkFrame):
             },
             key=str.lower,
         )
+    
+    def _obter_dados_apontamento(self) -> tuple[dict, Decimal, str] | None:
+        selected = self.tree.selection()
+
+        if not selected:
+            messagebox.showinfo(
+                "Entrega de MP",
+                "Selecione um item da lista.",
+            )
+            return None
+
+        nome_operador = self.operator_entry.get().strip()
+
+        if not nome_operador:
+            messagebox.showinfo(
+                "Entrega de MP",
+                "Informe o nome do operador.",
+            )
+            return None
+
+        try:
+            texto_quantidade = (
+                self.quantidade_var.get()
+                .strip()
+                .replace(",", ".")
+            )
+            quantidade = Decimal(texto_quantidade)
+
+            if quantidade <= 0:
+                raise InvalidOperation
+
+        except (InvalidOperation, ValueError):
+            messagebox.showerror(
+                "Entrega de MP",
+                "Digite uma quantidade maior que zero.",
+            )
+            return None
+
+        row = self.rows.get(selected[0])
+
+        if row is None:
+            messagebox.showerror(
+                "Entrega de MP",
+                "O item selecionado não está mais disponível.",
+            )
+            return None
+
+        return row, quantidade, nome_operador
+
+
+    def _limpar_apos_apontamento(self) -> None:
+        self.quantidade_var.set("")
+        self.note_entry.delete(0, "end")
+        self.refresh()
+
+
+    def verificar_material_fabrica(self) -> None:
+        dados = self._obter_dados_apontamento()
+
+        if dados is None:
+            return
+
+        row, quantidade, nome_operador = dados
+
+        try:
+            if self.repository is None:
+                self.repository = AlmoxRepository()
+
+            saldo = self.repository.consultar_material_fabrica(
+                item_requisicao_id=int(row["item_requisicao_id"]),
+            )
+
+        except Exception as exc:
+            messagebox.showerror("Material em fábrica", str(exc))
+            return
+
+        quantidade_disponivel = Decimal(
+            str(saldo.get("quantidade_disponivel") or 0)
+        )
+        quantidade_restante = Decimal(
+            str(saldo.get("quantidade_restante") or 0)
+        )
+
+        material = saldo.get("material") or row.get("material") or ""
+        rastreabilidade = (
+            saldo.get("rastreabilidade")
+            or row.get("rastreabilidade")
+            or ""
+        )
+
+        if quantidade_disponivel <= 0:
+            usar_novo = messagebox.askyesno(
+                "Material em fábrica",
+                (
+                    "Não há saldo disponível para esta combinação.\n\n"
+                    f"Material: {material}\n"
+                    f"Rastreabilidade: {rastreabilidade}\n\n"
+                    "Deseja registrar a quantidade como material novo?"
+                ),
+            )
+
+            if usar_novo:
+                self.register_delivery()
+
+            return
+
+        if quantidade > quantidade_restante:
+            usar_novo = messagebox.askyesno(
+                "Material em fábrica",
+                (
+                    "A quantidade digitada ultrapassa o restante da "
+                    "requisição e não pode ser retirada integralmente "
+                    "do saldo em fábrica.\n\n"
+                    f"Digitado: {self._fmt(quantidade)}\n"
+                    f"Restante da requisição: "
+                    f"{self._fmt(quantidade_restante)}\n"
+                    f"Disponível na fábrica: "
+                    f"{self._fmt(quantidade_disponivel)}\n\n"
+                    "Deseja registrar como material novo?"
+                ),
+            )
+
+            if usar_novo:
+                self.register_delivery()
+
+            return
+
+        if quantidade > quantidade_disponivel:
+            usar_novo = messagebox.askyesno(
+                "Material em fábrica",
+                (
+                    "O saldo em fábrica é menor que a quantidade "
+                    "digitada.\n\n"
+                    f"Digitado: {self._fmt(quantidade)}\n"
+                    f"Disponível na fábrica: "
+                    f"{self._fmt(quantidade_disponivel)}\n\n"
+                    "Deseja registrar como material novo?"
+                ),
+            )
+
+            if usar_novo:
+                self.register_delivery()
+
+            return
+
+        escolha = messagebox.askyesnocancel(
+            "Material em fábrica",
+            (
+                f"Material: {material}\n"
+                f"Rastreabilidade: {rastreabilidade}\n"
+                f"Disponível na fábrica: "
+                f"{self._fmt(quantidade_disponivel)}\n"
+                f"Quantidade digitada: {self._fmt(quantidade)}\n\n"
+                "SIM: usar o material que já está na fábrica.\n"
+                "NÃO: registrar a entrega de material novo.\n"
+                "CANCELAR: não registrar nada."
+            ),
+        )
+
+        if escolha is None:
+            return
+
+        if escolha is False:
+            self.register_delivery()
+            return
+
+        try:
+            resultado = self.repository.registrar_entrega_material_fabrica(
+                item_requisicao_id=int(row["item_requisicao_id"]),
+                quantidade=quantidade,
+                nome_operador=nome_operador,
+                observacao=self.note_entry.get(),
+            )
+
+        except Exception as exc:
+            messagebox.showerror("Material em fábrica", str(exc))
+            self.refresh()
+            return
+
+        messagebox.showinfo(
+            "Material em fábrica",
+            (
+                "Entrega registrada usando o saldo da fábrica.\n"
+                f"Quantidade entregue: "
+                f"{self._fmt(resultado.get('quantidade_entregue'))}\n"
+                f"Restante da requisição: "
+                f"{self._fmt(resultado.get('quantidade_restante'))}\n"
+                f"Saldo da fábrica: "
+                f"{self._fmt(resultado.get('saldo_fabrica_restante'))}"
+            ),
+        )
+
+        self._limpar_apos_apontamento()
 
     @staticmethod
     def _set_option_values(

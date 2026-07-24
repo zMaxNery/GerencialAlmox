@@ -1,7 +1,7 @@
 from modules.entregas_est.view import EntregasEstView
 
 NOME = "Requisições"
-ORDEM = 20
+ORDEM = 2
 
 
 def abrir(parent):

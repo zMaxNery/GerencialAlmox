@@ -1,7 +1,7 @@
 from modules.importador_emails.view import ImportadorEmailsView
 
 NOME = "Importar E-mails"
-ORDEM = 10
+ORDEM = 1
 
 
 def abrir(parent):

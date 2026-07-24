@@ -31,7 +31,7 @@ class JanelaDevolucao(ctk.CTkToplevel):
         self.quantidade_var = ctk.StringVar(value="")
 
         self.title("Devolver material")
-        self.geometry("700x580")
+        self.geometry("760x550")
         self.resizable(False, False)
 
         # Mantém a janela na frente e bloqueia a tela principal.
@@ -469,6 +469,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         "dimensao",
         "solicitado",
         "entregue",
+        "excedente",
         "rastreabilidade",
         "estoque",
         "setor",
@@ -622,14 +623,15 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         )
 
         labels = {
-            "data_requisicao": "Dt Req.",
-            "hora_requisicao": "Hr Req.",
-            "data_entrega": "Dt Entr.",
-            "hora_entrega": "Hr Entr.",
+            "data_requisicao": "Dt Req",
+            "hora_requisicao": "Hr Req",
+            "data_entrega": "Dt Entr",
+            "hora_entrega": "Hr Entr",
             "material": "Material",
             "dimensao": "Dimensão",
             "solicitado": "Solicitado",
             "entregue": "Entregue",
+            "excedente": "Excedente",
             "rastreabilidade": "Rastreabilidade",
             "estoque": "Estoque",
             "setor": "Setor",
@@ -645,6 +647,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             "dimensao": 120,
             "solicitado": 110,
             "entregue": 110,
+            "excedente": 120,
             "rastreabilidade": 180,
             "estoque": 110,
             "setor": 110,
@@ -803,6 +806,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
                     row.get("dimensao") or "",
                     self._fmt(row.get("quantidade_solicitada")),
                     self._fmt(row.get("quantidade_entregue")),
+                    self._fmt(row.get("quantidade_excedente")),
                     row.get("rastreabilidade") or "",
                     row.get("localizacao") or "",
                     row.get("setor") or "",

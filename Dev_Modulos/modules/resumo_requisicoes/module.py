@@ -1,7 +1,7 @@
 from modules.resumo_requisicoes.view import VisaoAdministrativaView
 
 NOME = "Material Entregue"
-ORDEM = 30
+ORDEM = 3
 
 
 def abrir(parent):

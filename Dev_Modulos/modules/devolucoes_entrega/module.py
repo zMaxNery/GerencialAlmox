@@ -1,7 +1,7 @@
 from modules.devolucoes_entrega.view import HistoricoDevolucoesView
 
 NOME = "Histórico Devoluções"
-ORDEM = 40
+ORDEM = 5
 
 
 def abrir(parent):
