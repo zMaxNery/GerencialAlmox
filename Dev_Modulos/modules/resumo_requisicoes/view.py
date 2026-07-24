@@ -10,100 +10,455 @@ import customtkinter as ctk
 
 from core.almox_repository import AlmoxRepository
 
-
-class DevolucaoDialog(ctk.CTkToplevel):
+class JanelaDevolucao(ctk.CTkToplevel):
     def __init__(
         self,
         parent,
         row: dict,
-        formatar_quantidade: Callable[[object], str],
-        confirmar: Callable[[str, str], None],
-    ) -> None:
+        repository: AlmoxRepository,
+        on_success,
+    ):
         super().__init__(parent)
 
-        self._confirmar = confirmar
-        self._formatar_quantidade = formatar_quantidade
+        self.row = row
+        self.repository = repository
+        self.on_success = on_success
+
+        self.quantidade_disponivel = Decimal(
+            str(row.get("quantidade_entregue") or 0)
+        )
+
+        self.quantidade_var = ctk.StringVar(value="")
 
         self.title("Devolver material")
-        self.geometry("480x350")
+        self.geometry("700x580")
         self.resizable(False, False)
+
+        # Mantém a janela na frente e bloqueia a tela principal.
         self.transient(parent.winfo_toplevel())
         self.grab_set()
+        self.focus_force()
 
         self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+
+        self._build_header()
+        self._build_form()
+        self._build_keypad()
+
+        self.protocol(
+            "WM_DELETE_WINDOW",
+            self._fechar,
+        )
+
+    def _build_header(self) -> None:
+        material = self.row.get("material") or ""
+        dimensao = self.row.get("dimensao") or ""
+
+        header = ctk.CTkFrame(
+            self,
+            fg_color="transparent",
+        )
+
+        header.grid(
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=20,
+            pady=(20, 10),
+        )
 
         ctk.CTkLabel(
-            self,
-            text="Devolução de material",
-            font=ctk.CTkFont(size=22, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=20, pady=(20, 12))
-
-        material = str(row.get("material") or "")
-        dimensao = str(row.get("dimensao") or "")
-        disponivel = formatar_quantidade(row.get("quantidade_entregue"))
+            header,
+            text="Devolver material",
+            font=ctk.CTkFont(
+                size=22,
+                weight="bold",
+            ),
+        ).pack(anchor="w")
 
         ctk.CTkLabel(
-            self,
+            header,
             text=f"{material} | {dimensao}",
-            anchor="w",
-            justify="left",
-            wraplength=430,
-            font=ctk.CTkFont(size=15, weight="bold"),
-        ).grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 6))
+            font=ctk.CTkFont(size=16),
+        ).pack(anchor="w", pady=(5, 0))
 
         ctk.CTkLabel(
-            self,
-            text=f"Quantidade disponível para devolução: {disponivel}",
-            anchor="w",
-        ).grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 16))
+            header,
+            text=(
+                "Disponível para devolução: "
+                f"{self._fmt(self.quantidade_disponivel)}"
+            ),
+            text_color="#E6A23C",
+            font=ctk.CTkFont(
+                size=15,
+                weight="bold",
+            ),
+        ).pack(anchor="w", pady=(5, 0))
 
-        ctk.CTkLabel(self, text="Quantidade a devolver:").grid(
-            row=3, column=0, sticky="w", padx=20, pady=(0, 4)
-        )
-        self.quantidade_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Ex.: 1 ou 0,500",
-            height=38,
-        )
-        self.quantidade_entry.grid(row=4, column=0, sticky="ew", padx=20)
+    def _build_form(self) -> None:
+        form = ctk.CTkFrame(self)
 
-        ctk.CTkLabel(self, text="Observação (opcional):").grid(
-            row=5, column=0, sticky="w", padx=20, pady=(16, 4)
+        form.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=(20, 10),
+            pady=(0, 20),
         )
-        self.observacao_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Motivo ou comentário da devolução",
-            height=38,
-        )
-        self.observacao_entry.grid(row=6, column=0, sticky="ew", padx=20)
 
-        botoes = ctk.CTkFrame(self, fg_color="transparent")
-        botoes.grid(row=7, column=0, sticky="e", padx=20, pady=24)
+        form.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            form,
+            text="Quantidade devolvida:",
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=15,
+            pady=(15, 5),
+        )
+
+        self.visor = ctk.CTkEntry(
+            form,
+            textvariable=self.quantidade_var,
+            justify="right",
+            height=55,
+            font=ctk.CTkFont(
+                size=26,
+                weight="bold",
+            ),
+        )
+
+        self.visor.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=15,
+            pady=(0, 15),
+        )
+
+        ctk.CTkLabel(
+            form,
+            text="Observação:",
+        ).grid(
+            row=2,
+            column=0,
+            sticky="w",
+            padx=15,
+            pady=(5, 5),
+        )
+
+        self.observacao_entry = ctk.CTkTextbox(
+            form,
+            height=120,
+            font=ctk.CTkFont(size=14),
+        )
+
+        self.observacao_entry.grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=15,
+            pady=(0, 15),
+        )
 
         ctk.CTkButton(
-            botoes,
-            text="Cancelar",
-            fg_color="gray45",
-            hover_color="gray35",
-            command=self.destroy,
-        ).pack(side="left", padx=(0, 8))
-
-        ctk.CTkButton(
-            botoes,
+            form,
             text="Confirmar devolução",
-            command=self._enviar,
-        ).pack(side="left")
+            height=45,
+            command=self._confirmar,
+        ).grid(
+            row=4,
+            column=0,
+            sticky="ew",
+            padx=15,
+            pady=(5, 8),
+        )
 
-        self.after(100, self.quantidade_entry.focus_set)
-        self.bind("<Return>", lambda _event: self._enviar())
-        self.bind("<Escape>", lambda _event: self.destroy())
+        ctk.CTkButton(
+            form,
+            text="Cancelar",
+            height=40,
+            fg_color="#555555",
+            hover_color="#444444",
+            command=self._fechar,
+        ).grid(
+            row=5,
+            column=0,
+            sticky="ew",
+            padx=15,
+            pady=(0, 15),
+        )
 
-    def _enviar(self) -> None:
-        quantidade = self.quantidade_entry.get().strip()
-        observacao = self.observacao_entry.get().strip()
-        self._confirmar(quantidade, observacao)
+    def _build_keypad(self) -> None:
+        keypad = ctk.CTkFrame(self)
 
+        keypad.grid(
+            row=1,
+            column=1,
+            sticky="ns",
+            padx=(0, 20),
+            pady=(0, 20),
+        )
 
+        for coluna in range(3):
+            keypad.grid_columnconfigure(
+                coluna,
+                weight=1,
+            )
+
+        teclas = (
+            ("7", 0, 0),
+            ("8", 0, 1),
+            ("9", 0, 2),
+            ("4", 1, 0),
+            ("5", 1, 1),
+            ("6", 1, 2),
+            ("1", 2, 0),
+            ("2", 2, 1),
+            ("3", 2, 2),
+            ("0", 3, 0),
+            ("00", 3, 1),
+            (",", 3, 2),
+        )
+
+        for texto, linha, coluna in teclas:
+            ctk.CTkButton(
+                keypad,
+                text=texto,
+                width=70,
+                height=62,
+                font=ctk.CTkFont(
+                    size=21,
+                    weight="bold",
+                ),
+                command=lambda valor=texto: (
+                    self._adicionar_tecla(valor)
+                ),
+            ).grid(
+                row=linha,
+                column=coluna,
+                padx=5,
+                pady=5,
+            )
+
+        ctk.CTkButton(
+            keypad,
+            text="⌫",
+            height=50,
+            command=self._apagar,
+        ).grid(
+            row=4,
+            column=0,
+            padx=5,
+            pady=5,
+            sticky="ew",
+        )
+
+        ctk.CTkButton(
+            keypad,
+            text="Limpar",
+            height=50,
+            command=self._limpar,
+        ).grid(
+            row=4,
+            column=1,
+            padx=5,
+            pady=5,
+            sticky="ew",
+        )
+
+        ctk.CTkButton(
+            keypad,
+            text="Tudo",
+            height=50,
+            command=self._preencher_tudo,
+        ).grid(
+            row=4,
+            column=2,
+            padx=5,
+            pady=5,
+            sticky="ew",
+        )
+
+    def _adicionar_tecla(self, valor: str) -> None:
+        atual = self.quantidade_var.get()
+
+        if valor == ",":
+            if "," in atual or "." in atual:
+                return
+
+            if not atual:
+                atual = "0"
+
+            self.quantidade_var.set(
+                atual + ","
+            )
+
+            return
+
+        novo_valor = atual + valor
+
+        separador = (
+            ","
+            if "," in novo_valor
+            else "."
+            if "." in novo_valor
+            else None
+        )
+
+        # O banco aceita até três casas decimais.
+        if separador:
+            decimais = novo_valor.split(
+                separador,
+                1,
+            )[1]
+
+            if len(decimais) > 3:
+                return
+
+        # Evita uma sequência desnecessária de zeros.
+        if (
+            novo_valor.startswith("00")
+            and "," not in novo_valor
+            and "." not in novo_valor
+        ):
+            novo_valor = novo_valor.lstrip("0") or "0"
+
+        self.quantidade_var.set(
+            novo_valor
+        )
+
+    def _apagar(self) -> None:
+        atual = self.quantidade_var.get()
+
+        self.quantidade_var.set(
+            atual[:-1]
+        )
+
+    def _limpar(self) -> None:
+        self.quantidade_var.set("")
+
+    def _preencher_tudo(self) -> None:
+        self.quantidade_var.set(
+            self._fmt(
+                self.quantidade_disponivel
+            ).replace(".", ",")
+        )
+
+    def _confirmar(self) -> None:
+        texto = (
+            self.quantidade_var.get()
+            .strip()
+            .replace(",", ".")
+        )
+
+        try:
+            quantidade = Decimal(texto)
+
+            if quantidade <= 0:
+                raise InvalidOperation
+
+        except (InvalidOperation, ValueError):
+            messagebox.showerror(
+                "Devolução",
+                "Informe uma quantidade maior que zero.",
+                parent=self,
+            )
+            return
+
+        if quantidade > self.quantidade_disponivel:
+            messagebox.showerror(
+                "Devolução",
+                (
+                    "A quantidade não pode ser maior que "
+                    f"{self._fmt(self.quantidade_disponivel)}."
+                ),
+                parent=self,
+            )
+            return
+
+        observacao = (
+            self.observacao_entry
+            .get("1.0", "end")
+            .strip()
+        )
+
+        confirmado = messagebox.askyesno(
+            "Confirmar devolução",
+            (
+                f"Devolver {self._fmt(quantidade)} do material "
+                f"{self.row.get('material', '')}?"
+            ),
+            parent=self,
+        )
+
+        if not confirmado:
+            return
+
+        try:
+            resultado = self.repository.devolver_material(
+                apontamento_entrega_id=int(
+                    self.row["apontamento_entrega_id"]
+                ),
+                quantidade=quantidade,
+                nome_operador=getpass.getuser(),
+                observacao=observacao,
+            )
+
+        except Exception as exc:
+            messagebox.showerror(
+                "Devolução",
+                str(exc),
+                parent=self,
+            )
+            return
+
+        messagebox.showinfo(
+            "Devolução",
+            (
+                "Devolução registrada.\n"
+                "Quantidade restante nesta entrega: "
+                f"{self._fmt(
+                    resultado.get(
+                        'quantidade_entregue_restante'
+                    )
+                )}"
+            ),
+            parent=self,
+        )
+
+        self.grab_release()
+        self.destroy()
+
+        self.on_success()
+
+    def _fechar(self) -> None:
+        try:
+            self.grab_release()
+        except Exception:
+            pass
+
+        self.destroy()
+
+    @staticmethod
+    def _fmt(value) -> str:
+        if value in (None, ""):
+            return "0"
+
+        numero = Decimal(str(value))
+
+        return (
+            f"{numero:.3f}"
+            .rstrip("0")
+            .rstrip(".")
+            or "0"
+        )
+    
 class VisaoAdministrativaView(ctk.CTkFrame):
     COLUMNS = (
         "data_requisicao",
@@ -127,7 +482,6 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         self.repository: AlmoxRepository | None = None
         self.all_rows: list[dict] = []
         self.rows: dict[str, dict] = {}
-        self.dialog_devolucao: DevolucaoDialog | None = None
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
@@ -156,8 +510,8 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         ctk.CTkButton(
             header,
             text="Devolver",
-            command=self._abrir_devolucao,
-        ).pack(side="right")
+            command=self.abrir_janela_devolucao,
+        ).pack(side="right", padx=(0, 10))
 
     def _build_filters(self) -> None:
         filtros = ctk.CTkFrame(self)
@@ -317,7 +671,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         self.tree.column("material", anchor="w")
         self.tree.column("dimensao", anchor="w")
         self.tree.column("observacao", anchor="w")
-        self.tree.bind("<Double-1>", lambda _event: self._abrir_devolucao())
+        self.tree.bind("<Double-1>", lambda _event: self.abrir_janela_devolucao())
 
         y_scroll = ctk.CTkScrollbar(
             container,
@@ -458,43 +812,6 @@ class VisaoAdministrativaView(ctk.CTkFrame):
                 tags=(tag,),
             )
 
-    def _abrir_devolucao(self) -> None:
-        selecionado = self.tree.selection()
-        if not selecionado:
-            messagebox.showinfo(
-                "Devolução",
-                "Selecione uma entrega na tabela.",
-            )
-            return
-
-        row = self.rows.get(selecionado[0])
-        if row is None:
-            messagebox.showerror("Devolução", "A entrega selecionada não foi encontrada.")
-            return
-
-        disponivel = Decimal(str(row.get("quantidade_entregue") or 0))
-        if disponivel <= 0:
-            messagebox.showinfo(
-                "Devolução",
-                "Esta entrega não possui quantidade disponível para devolução.",
-            )
-            return
-
-        if self.dialog_devolucao is not None and self.dialog_devolucao.winfo_exists():
-            self.dialog_devolucao.focus_force()
-            return
-
-        self.dialog_devolucao = DevolucaoDialog(
-            self,
-            row,
-            self._fmt,
-            lambda quantidade, observacao: self._confirmar_devolucao(
-                row,
-                quantidade,
-                observacao,
-            ),
-        )
-
     def _confirmar_devolucao(
         self,
         row: dict,
@@ -570,6 +887,43 @@ class VisaoAdministrativaView(ctk.CTkFrame):
                 if row.get(field) not in (None, "")
             },
             key=str.lower,
+        )
+    
+    def abrir_janela_devolucao(self) -> None:
+        selecionados = self.tree.selection()
+
+        if not selecionados:
+            messagebox.showinfo(
+                "Devolução",
+                "Selecione uma entrega na tabela.",
+            )
+            return
+
+        row = self.rows.get(selecionados[0])
+
+        if not row:
+            return
+
+        quantidade_disponivel = Decimal(
+            str(row.get("quantidade_entregue") or 0)
+        )
+
+        if quantidade_disponivel <= 0:
+            messagebox.showinfo(
+                "Devolução",
+                "Esta entrega já foi totalmente devolvida.",
+            )
+            self.refresh()
+            return
+
+        if self.repository is None:
+            self.repository = AlmoxRepository()
+
+        JanelaDevolucao(
+            parent=self,
+            row=row,
+            repository=self.repository,
+            on_success=self.refresh,
         )
 
     @staticmethod

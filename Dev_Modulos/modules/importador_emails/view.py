@@ -12,11 +12,23 @@ from core.almox_repository import AlmoxRepository
 from modules.importador_emails.models import EmailProcessado
 from modules.importador_emails.msg_parser import MsgParser
 
+import re
+import shutil
+import tempfile
+from uuid import uuid4
+
 # Carrega a função de arrastar e soltar na tela
 try:
     from tkinterdnd2 import DND_FILES
 except ImportError:
     DND_FILES = None
+
+try:
+    import pythoncom
+    import win32com.client
+except ImportError:
+    pythoncom = None
+    win32com = None
 
 class ImportadorEmailsView(ctk.CTkFrame):
     COLUMNS = (
@@ -35,6 +47,12 @@ class ImportadorEmailsView(ctk.CTkFrame):
         self.parser = MsgParser()
         self.repository: AlmoxRepository | None = None
         self.files: dict[str, dict] = {}
+
+        self.outlook_temp_dir = Path(
+            tempfile.mkdtemp(
+                prefix="GerencialAlmox_Outlook_"
+            )
+        )
 
         self.drag_drop_ativo = False
 
@@ -65,6 +83,13 @@ class ImportadorEmailsView(ctk.CTkFrame):
         ctk.CTkButton(
             actions, text="Selecionar arquivos", command=self._select_files
         ).pack(side="left", padx=(0, 8))
+
+        # Btn importar do outlook
+        ctk.CTkButton(
+            actions,
+            text="Adicionar do Outlook",
+            command=self._adicionar_do_outlook,
+        ).pack(side="left", padx=8)
 
         # Btn analisar dados 
         ctk.CTkButton(actions, text="Analisar", command=self._analyze_all).pack(
@@ -421,3 +446,192 @@ class ImportadorEmailsView(ctk.CTkFrame):
                 values=values,
                 tags=(tag_linha,),
             )
+    
+    def _adicionar_do_outlook(self) -> None:
+        """
+        Obtém os e-mails selecionados no Outlook,
+        salva-os temporariamente como .msg e adiciona-os
+        à lista normal do importador.
+        """
+        if pythoncom is None or win32com is None:
+            messagebox.showerror(
+                "Outlook",
+                (
+                    "A integração com o Outlook não está disponível.\n\n"
+                    "Instale a dependência:\n"
+                    "pip install pywin32"
+                ),
+            )
+            return
+
+        pythoncom.CoInitialize()
+
+        outlook = None
+        explorer = None
+        selection = None
+
+        try:
+            outlook = win32com.client.Dispatch(
+                "Outlook.Application"
+            )
+
+            explorer = outlook.ActiveExplorer()
+
+            if explorer is None:
+                messagebox.showinfo(
+                    "Outlook",
+                    (
+                        "Nenhuma janela do Outlook foi encontrada.\n\n"
+                        "Abra o Outlook e selecione os e-mails "
+                        "que deseja adicionar."
+                    ),
+                )
+                return
+
+            selection = explorer.Selection
+
+            if selection.Count == 0:
+                messagebox.showinfo(
+                    "Outlook",
+                    (
+                        "Nenhum e-mail está selecionado.\n\n"
+                        "Selecione um ou mais e-mails no Outlook "
+                        "e tente novamente."
+                    ),
+                )
+                return
+
+            caminhos: list[str] = []
+            ignorados = 0
+            erros: list[str] = []
+
+            # A coleção Selection do Outlook começa no índice 1.
+            for indice in range(1, selection.Count + 1):
+                item = None
+
+                try:
+                    item = selection.Item(indice)
+
+                    # MailItem possui HTMLBody. Outros itens, como
+                    # compromissos e tarefas, são ignorados.
+                    if not hasattr(item, "HTMLBody"):
+                        ignorados += 1
+                        continue
+
+                    assunto = str(
+                        getattr(item, "Subject", "")
+                        or "Email sem assunto"
+                    )
+
+                    nome_seguro = self._nome_arquivo_seguro(
+                        assunto
+                    )
+
+                    nome_arquivo = (
+                        f"{nome_seguro}_"
+                        f"{uuid4().hex[:8]}.msg"
+                    )
+
+                    caminho = (
+                        self.outlook_temp_dir
+                        / nome_arquivo
+                    )
+
+                    # 9 = olMSGUnicode.
+                    item.SaveAs(
+                        str(caminho),
+                        9,
+                    )
+
+                    if caminho.exists():
+                        caminhos.append(
+                            str(caminho)
+                        )
+                    else:
+                        erros.append(
+                            f"{assunto}: arquivo não foi criado"
+                        )
+
+                except Exception as exc:
+                    erros.append(
+                        f"E-mail {indice}: {exc}"
+                    )
+
+                finally:
+                    item = None
+
+            if caminhos:
+                self._add_files(caminhos)
+
+            partes: list[str] = []
+
+            if caminhos:
+                partes.append(
+                    f"{len(caminhos)} e-mail(s) adicionado(s)"
+                )
+
+            if ignorados:
+                partes.append(
+                    f"{ignorados} item(ns) ignorado(s)"
+                )
+
+            if erros:
+                partes.append(
+                    f"{len(erros)} erro(s)"
+                )
+
+            self.status_label.configure(
+                text=" | ".join(partes)
+                or "Nenhum e-mail foi adicionado."
+            )
+
+            if erros:
+                messagebox.showwarning(
+                    "Outlook",
+                    (
+                        "Alguns itens não puderam ser adicionados:\n\n"
+                        + "\n".join(erros[:10])
+                    ),
+                )
+
+        except Exception as exc:
+            messagebox.showerror(
+                "Outlook",
+                (
+                    "Não foi possível acessar o Outlook.\n\n"
+                    f"Detalhes: {exc}"
+                ),
+            )
+
+        finally:
+            selection = None
+            explorer = None
+            outlook = None
+
+            pythoncom.CoUninitialize()
+    
+    @staticmethod
+    def _nome_arquivo_seguro(assunto: str) -> str:
+        nome = re.sub(
+            r'[<>:"/\\|?*\x00-\x1f]',
+            "_",
+            assunto,
+        )
+
+        nome = " ".join(
+            nome.split()
+        ).strip(" ._")
+
+        # Evita nomes grandes demais no Windows.
+        nome = nome[:100]
+
+        return nome or "Email sem assunto"
+    
+    def destroy(self) -> None:
+        try:
+            shutil.rmtree(
+                self.outlook_temp_dir,
+                ignore_errors=True,
+            )
+        finally:
+            super().destroy()

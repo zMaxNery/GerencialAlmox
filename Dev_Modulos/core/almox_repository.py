@@ -88,9 +88,10 @@ class AlmoxRepository:
         response = (
             self.client.table("vw_historico_entregas")
             .select("*")
+            .gt("quantidade_entregue", 0)
             .order("entregue_em", desc=True)
             .order("apontamento_entrega_id", desc=True)
-            .limit(5000)
+            .limit(3000)
             .execute()
         )
         return response.data or []

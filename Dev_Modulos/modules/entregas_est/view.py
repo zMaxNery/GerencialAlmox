@@ -20,8 +20,8 @@ class EntregasEstView(ctk.CTkFrame):
         "entregue",
         "falta",
         "rastreabilidade",
-        "estoque",
         "setor",
+        "estoque",
     )
 
     def __init__(self, parent):
@@ -203,11 +203,10 @@ class EntregasEstView(ctk.CTkFrame):
             pady=(4, 4),
         )
 
-        self.quantidade_display = ctk.CTkLabel(
+        self.quantidade_display = ctk.CTkEntry(
             painel,
             textvariable=self.quantidade_var,
             height=58,
-            anchor="e",
             fg_color=("#FFFFFF", "#151515"),
             corner_radius=6,
             font=ctk.CTkFont(size=28, weight="bold"),
@@ -395,8 +394,8 @@ class EntregasEstView(ctk.CTkFrame):
             "entregue": "Entregue",
             "falta": "Falta",
             "rastreabilidade": "Rastreabilidade",
-            "estoque": "Estoque",
             "setor": "Setor",
+            "estoque": "Estoque",
         }
 
         widths = {
@@ -408,8 +407,8 @@ class EntregasEstView(ctk.CTkFrame):
             "entregue": 110,
             "falta": 70,
             "rastreabilidade": 180,
-            "estoque": 110,
             "setor": 110,
+            "estoque": 110,
         }
 
         for column in self.COLUMNS:
@@ -589,8 +588,8 @@ class EntregasEstView(ctk.CTkFrame):
                     self._fmt(row.get("quantidade_entregue")),
                     self._fmt(row.get("quantidade_restante")),
                     row.get("rastreabilidade") or "",
-                    row.get("localizacao") or "",
                     row.get("setor") or "",
+                    row.get("localizacao") or "",
                 ),
                 tags=(tag_linha,),
             )
