@@ -400,23 +400,31 @@ class EntregasEstView(ctk.CTkFrame):
         }
 
         widths = {
-            "data": 50,
-            "horario": 20,
-            "material": 200,
-            "dimensao": 60,
-            "solicitado": 50,
-            "entregue": 50,
-            "falta": 20,
-            "rastreabilidade": 120,
-            "estoque": 40,
-            "setor": 40,
+            "data": 110,
+            "horario": 80,
+            "material": 290,
+            "dimensao": 120,
+            "solicitado": 110,
+            "entregue": 110,
+            "falta": 70,
+            "rastreabilidade": 180,
+            "estoque": 110,
+            "setor": 110,
         }
 
         for column in self.COLUMNS:
-            self.tree.heading(column, text=labels[column])
+            largura = widths[column]
+
+            self.tree.heading(
+                column,
+                text=labels[column],
+            )
+
             self.tree.column(
                 column,
-                width=widths[column],
+                width=largura,
+                minwidth=largura,
+                stretch=False,
                 anchor="center",
             )
 
@@ -424,15 +432,36 @@ class EntregasEstView(ctk.CTkFrame):
         self.tree.column("dimensao", anchor="w")
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
 
-        y_scroll = ttk.Scrollbar(
+        y_scroll = ctk.CTkScrollbar(
             container,
-            orient="vertical",
+            orientation="vertical",
             command=self.tree.yview,
+
+            # Espessura da barra vertical
+            width=22,
+
+            fg_color=("gray85", "gray20"),
+            button_color=("#557A95", "#557A95"),
+            button_hover_color=("#2F80ED", "#2F80ED"),
+
+            corner_radius=6,
+            border_spacing=3,
         )
-        x_scroll = ttk.Scrollbar(
+
+        x_scroll = ctk.CTkScrollbar(
             container,
-            orient="horizontal",
+            orientation="horizontal",
             command=self.tree.xview,
+
+            # Espessura da barra horizontal
+            height=22,
+
+            fg_color=("gray85", "gray20"),
+            button_color=("#557A95", "#557A95"),
+            button_hover_color=("#2F80ED", "#2F80ED"),
+
+            corner_radius=6,
+            border_spacing=3,
         )
 
         self.tree.configure(
@@ -793,3 +822,4 @@ class EntregasEstView(ctk.CTkFrame):
         number = Decimal(str(value))
         text = f"{number:.3f}".rstrip("0").rstrip(".")
         return text or "0"
+    

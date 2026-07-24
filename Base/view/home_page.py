@@ -7,6 +7,8 @@ class HomePage(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        self.botoes_modulos: list[ctk.CTkButton] = []
+
         self.drag_drop_disponivel = False
         self.drag_drop_erro: str | None = None
 
@@ -28,7 +30,7 @@ class HomePage(ctk.CTk):
         # Configuração de Grid (Layout)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
-
+        
         # Barra lateral
         self.barra_lateral()
 
@@ -59,7 +61,10 @@ class HomePage(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="Gerencial", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=20)
 
-        self.sidebar_frame.grid_rowconfigure(99, weight=1)
+        self.sidebar_frame.grid_rowconfigure(98, weight=1)
+
+        self.btn_recarregar = ctk.CTkButton(self.sidebar_frame, text="Recarregar módulos", command=self.recarregar_modulos)
+        self.btn_recarregar.grid(row=99, column=0, padx=20, pady=(10, 5), sticky="ew")
 
         self.btn_theme = ctk.CTkButton(self.sidebar_frame, text="Mudar tema", command=self.btn_change_theme)
         self.btn_theme.grid(row=100, column=0, padx=20, pady=20, sticky="s")
@@ -70,19 +75,79 @@ class HomePage(ctk.CTk):
         else:
             ctk.set_appearance_mode("Dark")
 
-    def carregar_menu_modulos(self):
-        modulos = ModuleLoader.carregar_modulos()
+    def carregar_menu_modulos(self, recarregar: bool = False) -> int:
+        # Remove os botões antigos da barra lateral.
+        for botao in self.botoes_modulos:
+            try:
+                botao.destroy()
+            except Exception:
+                pass
+
+        self.botoes_modulos.clear()
+
+        modulos = ModuleLoader.carregar_modulos(recarregar=recarregar)
 
         linha = 1
 
         for modulo in modulos:
-
-            btn = ctk.CTkButton(
+            botao = ctk.CTkButton(
                 self.sidebar_frame,
                 text=modulo.NOME,
-                command=lambda m=modulo: m.abrir(self.conteudo_frame)
+                command=lambda m=modulo: self.abrir_modulo(m),
             )
 
-            btn.grid(row=linha, column=0, padx=20, pady=10)
+            botao.grid(
+                row=linha,
+                column=0,
+                padx=20,
+                pady=10,
+                sticky="ew",
+            )
 
+            self.botoes_modulos.append(botao)
             linha += 1
+
+        return len(modulos)
+    
+    def abrir_modulo(self, modulo) -> None:
+        self.limpar_tela()
+        modulo.abrir(self.conteudo_frame)
+
+    def recarregar_modulos(self) -> None:
+        try:
+            # Destrói a instância da tela atual, eliminando referências
+            # às classes antigas do módulo.
+            self.limpar_tela()
+            self.update_idletasks()
+
+            quantidade = self.carregar_menu_modulos(
+                recarregar=True
+            )
+
+            ctk.CTkLabel(
+                self.conteudo_frame,
+                text=(
+                    "Módulos recarregados com sucesso.\n"
+                    f"{quantidade} módulo(s) encontrado(s)."
+                ),
+                font=ctk.CTkFont(
+                    size=18,
+                    weight="bold",
+                ),
+            ).pack(
+                expand=True,
+                padx=30,
+                pady=30,
+            )
+
+        except Exception as exc:
+            ctk.CTkLabel(
+                self.conteudo_frame,
+                text=f"Erro ao recarregar módulos:\n{exc}",
+                text_color="#E74C3C",
+                font=ctk.CTkFont(size=16),
+            ).pack(
+                expand=True,
+                padx=30,
+                pady=30,
+            )

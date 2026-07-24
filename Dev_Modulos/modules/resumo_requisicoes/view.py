@@ -117,8 +117,8 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         "rastreabilidade",
         "estoque",
         "setor",
-        "operador",
         "observacao",
+        "operador",
     )
 
     def __init__(self, parent):
@@ -239,12 +239,12 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         style = ttk.Style()
         style.configure(
             "HistoricoEntregas.Treeview",
-            font=("Arial", 11),
-            rowheight=32,
+            font=("Arial", 12),
+            rowheight=36,
         )
         style.configure(
             "HistoricoEntregas.Treeview.Heading",
-            font=("Arial", 12, "bold"),
+            font=("Arial", 14, "bold"),
         )
 
         container = ctk.CTkFrame(self)
@@ -268,7 +268,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         )
 
         labels = {
-            "data_requisicao": "Data Req.",
+            "data_requisicao": "Dt Req.",
             "hora_requisicao": "Hr Req.",
             "data_entrega": "Dt Entr.",
             "hora_entrega": "Hr Entr.",
@@ -279,36 +279,78 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             "rastreabilidade": "Rastreabilidade",
             "estoque": "Estoque",
             "setor": "Setor",
-            "operador": "Operador",
             "observacao": "Observação",
+            "operador": "Operador",
         }
         widths = {
-            "data_requisicao": 50,
-            "hora_requisicao": 20,
-            "data_entrega": 50,
-            "hora_entrega": 20,
-            "material": 170,
-            "dimensao": 150,
-            "solicitado": 75,
-            "entregue": 70,
-            "rastreabilidade": 125,
-            "estoque": 80,
-            "setor": 90,
-            "operador": 120,
-            "observacao": 220,
+            "data_requisicao": 100,
+            "hora_requisicao": 85,
+            "data_entrega": 100,
+            "hora_entrega": 85,
+            "material": 280,
+            "dimensao": 120,
+            "solicitado": 110,
+            "entregue": 110,
+            "rastreabilidade": 180,
+            "estoque": 110,
+            "setor": 110,
+            "observacao": 200,
+            "operador": 150,
         }
 
         for column in self.COLUMNS:
-            self.tree.heading(column, text=labels[column])
-            self.tree.column(column, width=widths[column], anchor="center")
+            largura = widths[column]
+
+            self.tree.heading(
+                column,
+                text=labels[column],
+            )
+
+            self.tree.column(
+                column,
+                width=largura,
+                minwidth=largura,
+                stretch=False,
+                anchor="center",
+            )
 
         self.tree.column("material", anchor="w")
         self.tree.column("dimensao", anchor="w")
         self.tree.column("observacao", anchor="w")
         self.tree.bind("<Double-1>", lambda _event: self._abrir_devolucao())
 
-        y_scroll = ttk.Scrollbar(container, orient="vertical", command=self.tree.yview)
-        x_scroll = ttk.Scrollbar(container, orient="horizontal", command=self.tree.xview)
+        y_scroll = ctk.CTkScrollbar(
+            container,
+            orientation="vertical",
+            command=self.tree.yview,
+
+            # Espessura da barra vertical
+            width=22,
+
+            fg_color=("gray85", "gray20"),
+            button_color=("#557A95", "#557A95"),
+            button_hover_color=("#2F80ED", "#2F80ED"),
+
+            corner_radius=6,
+            border_spacing=3,
+        )
+
+        x_scroll = ctk.CTkScrollbar(
+            container,
+            orientation="horizontal",
+            command=self.tree.xview,
+
+            # Espessura da barra horizontal
+            height=22,
+
+            fg_color=("gray85", "gray20"),
+            button_color=("#557A95", "#557A95"),
+            button_hover_color=("#2F80ED", "#2F80ED"),
+
+            corner_radius=6,
+            border_spacing=3,
+        )
+
         self.tree.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
 
         self.tree.grid(row=0, column=0, sticky="nsew")
@@ -410,8 +452,8 @@ class VisaoAdministrativaView(ctk.CTkFrame):
                     row.get("rastreabilidade") or "",
                     row.get("localizacao") or "",
                     row.get("setor") or "",
-                    row.get("nome_operador") or "",
                     row.get("observacao") or "",
+                    row.get("nome_operador") or "",
                 ),
                 tags=(tag,),
             )

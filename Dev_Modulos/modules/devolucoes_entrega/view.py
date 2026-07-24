@@ -149,12 +149,12 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         style = ttk.Style()
         style.configure(
             "Devolucoes.Treeview",
-            font=("Arial", 11),
-            rowheight=32,
+            font=("Arial", 12),
+            rowheight=36,
         )
         style.configure(
             "Devolucoes.Treeview.Heading",
-            font=("Arial", 12, "bold"),
+            font=("Arial", 14, "bold"),
         )
 
         container = ctk.CTkFrame(self)
