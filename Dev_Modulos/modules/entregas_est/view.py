@@ -8,6 +8,8 @@ from tkinter import messagebox, ttk
 import customtkinter as ctk
 
 from core.almox_repository import AlmoxRepository
+
+from modules.entregas_est.fabrica_dialog import JanelaUsoMaterialFabrica
 from datetime import datetime
 
 class EntregasEstView(ctk.CTkFrame):
@@ -356,6 +358,21 @@ class EntregasEstView(ctk.CTkFrame):
             fg_color="#557A95",
             hover_color="#2F80ED",
             command=self.verificar_material_fabrica,
+        ).grid(
+            row=14,
+            column=0,
+            columnspan=3,
+            sticky="ew",
+            padx=12,
+            pady=(0, 12),
+        )
+
+        ctk.CTkButton(
+            painel,
+            text="Usar material em fábrica",
+            height=44,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            command=self.usar_material_fabrica,
         ).grid(
             row=14,
             column=0,
@@ -749,6 +766,72 @@ class EntregasEstView(ctk.CTkFrame):
         )
 
         self._limpar_apos_apontamento()
+
+    def usar_material_fabrica(self) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showinfo(
+                "Material em fábrica",
+                "Selecione um item da lista.",
+            )
+            return
+
+        nome_operador = self.operator_entry.get().strip()
+        if not nome_operador:
+            messagebox.showinfo(
+                "Material em fábrica",
+                "Informe o nome do operador.",
+            )
+            return
+
+        row = self.rows.get(selected[0])
+        if row is None:
+            messagebox.showerror(
+                "Material em fábrica",
+                "O item selecionado não está mais disponível.",
+            )
+            self.refresh()
+            return
+
+        if self.repository is None:
+            self.repository = AlmoxRepository()
+
+        try:
+            consulta = self.repository.consultar_material_fabrica(
+                item_requisicao_id=int(row["item_requisicao_id"]),
+            )
+        except Exception as exc:
+            messagebox.showerror("Material em fábrica", str(exc))
+            return
+
+        disponivel = Decimal(
+            str(consulta.get("quantidade_disponivel") or 0)
+        )
+        if disponivel <= 0:
+            messagebox.showinfo(
+                "Material em fábrica",
+                (
+                    "Não há saldo disponível para esta combinação:\n\n"
+                    f"{row.get('material') or ''} × "
+                    f"{row.get('rastreabilidade') or ''}"
+                ),
+            )
+            return
+
+        JanelaUsoMaterialFabrica(
+            parent=self,
+            repository=self.repository,
+            item=row,
+            consulta=consulta,
+            nome_operador=nome_operador,
+            observacao=self.note_entry.get().strip() or None,
+            on_success=self._apos_uso_material_fabrica,
+        )
+
+    def _apos_uso_material_fabrica(self) -> None:
+        self.quantidade_var.set("")
+        self.note_entry.delete(0, "end")
+        self.refresh()
 
     def _unique_values(self, field: str) -> list[str]:
         return sorted(

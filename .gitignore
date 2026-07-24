@@ -4,3 +4,4 @@ __pycache__
 build/
 dist/
 GerencialAlmox.spec
+GerencialAlmox.code-workspace

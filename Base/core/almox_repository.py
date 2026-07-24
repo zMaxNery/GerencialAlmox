@@ -53,7 +53,6 @@ class AlmoxRepository:
         nome_operador: str,
         observacao: str | None = None,
     ) -> dict[str, Any]:
-        """Registra material novo e separa automaticamente o excedente."""
         quantidade_normalizada = self._normalizar_quantidade(
             quantidade,
             "Quantidade entregue inválida.",
@@ -78,7 +77,6 @@ class AlmoxRepository:
         self,
         item_requisicao_id: int,
     ) -> dict[str, Any]:
-        """Consulta saldo pela combinação material X rastreabilidade."""
         response = self.client.rpc(
             "consultar_material_fabrica",
             {
@@ -88,27 +86,26 @@ class AlmoxRepository:
 
         return self._obter_resultado_rpc(
             response.data,
-            "O Supabase não retornou o saldo de materiais em fábrica.",
+            "O Supabase não retornou o saldo em fábrica.",
         )
 
     def registrar_entrega_material_fabrica(
         self,
         item_requisicao_id: int,
-        quantidade: Decimal | str | float,
+        quantidade_fabrica: Decimal | str | float,
         nome_operador: str,
         observacao: str | None = None,
     ) -> dict[str, Any]:
-        """Atende uma requisição consumindo saldo já existente na fábrica."""
         quantidade_normalizada = self._normalizar_quantidade(
-            quantidade,
-            "Quantidade entregue inválida.",
+            quantidade_fabrica,
+            "Quantidade da fábrica inválida.",
         )
 
         response = self.client.rpc(
             "registrar_entrega_material_fabrica",
             {
                 "p_item_requisicao_id": item_requisicao_id,
-                "p_quantidade": float(quantidade_normalizada),
+                "p_quantidade_fabrica": float(quantidade_normalizada),
                 "p_nome_operador": nome_operador.strip(),
                 "p_observacao": observacao.strip() if observacao else None,
             },
@@ -116,19 +113,74 @@ class AlmoxRepository:
 
         return self._obter_resultado_rpc(
             response.data,
-            "O Supabase não retornou o resultado do consumo em fábrica.",
+            "O Supabase não retornou o resultado da entrega pela fábrica.",
+        )
+
+    def registrar_entrega_mista(
+        self,
+        item_requisicao_id: int,
+        quantidade_nova: Decimal | str | float,
+        nome_operador: str,
+        observacao: str | None = None,
+    ) -> dict[str, Any]:
+        quantidade_normalizada = self._normalizar_quantidade(
+            quantidade_nova,
+            "Quantidade de material novo inválida.",
+        )
+
+        response = self.client.rpc(
+            "registrar_entrega_mista",
+            {
+                "p_item_requisicao_id": item_requisicao_id,
+                "p_quantidade_nova": float(quantidade_normalizada),
+                "p_nome_operador": nome_operador.strip(),
+                "p_observacao": observacao.strip() if observacao else None,
+            },
+        ).execute()
+
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da entrega mista.",
         )
 
     def listar_materiais_fabrica(self) -> list[dict[str, Any]]:
         response = (
             self.client.table("vw_materiais_fabrica")
             .select("*")
+            .gt("quantidade_disponivel", 0)
             .order("recebido_em", desc=True)
             .order("lote_material_fabrica_id", desc=True)
             .limit(5000)
             .execute()
         )
         return response.data or []
+
+    def ajustar_material_fabrica(
+        self,
+        lote_material_fabrica_id: int,
+        nova_quantidade: Decimal | str | float,
+        nome_operador: str,
+        observacao: str | None = None,
+    ) -> dict[str, Any]:
+        quantidade_normalizada = self._normalizar_quantidade_nao_negativa(
+            nova_quantidade,
+            "Nova quantidade inválida.",
+        )
+
+        response = self.client.rpc(
+            "ajustar_material_fabrica",
+            {
+                "p_lote_material_fabrica_id": lote_material_fabrica_id,
+                "p_nova_quantidade": float(quantidade_normalizada),
+                "p_nome_operador": nome_operador.strip(),
+                "p_observacao": observacao.strip() if observacao else None,
+            },
+        ).execute()
+
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado do ajuste.",
+        )
 
     def listar_visao_administrativa(self) -> list[dict[str, Any]]:
         response = (
@@ -145,8 +197,7 @@ class AlmoxRepository:
         response = (
             self.client.table("vw_historico_entregas")
             .select("*")
-            # Mantém visível uma linha que tenha entrega líquida ou excedente.
-            .or_("quantidade_entregue.gt.0,quantidade_excedente.gt.0")
+            .gt("quantidade_entregue", 0)
             .order("entregue_em", desc=True)
             .order("apontamento_entrega_id", desc=True)
             .limit(5000)
@@ -208,7 +259,25 @@ class AlmoxRepository:
         return valor
 
     @staticmethod
-    def _obter_resultado_rpc(data: Any, mensagem_erro: str) -> dict[str, Any]:
+    def _normalizar_quantidade_nao_negativa(
+        quantidade: Decimal | str | float,
+        mensagem: str,
+    ) -> Decimal:
+        try:
+            valor = Decimal(str(quantidade).replace(",", "."))
+        except InvalidOperation as exc:
+            raise ValueError(mensagem) from exc
+
+        if valor < 0:
+            raise ValueError(mensagem)
+
+        return valor
+
+    @staticmethod
+    def _obter_resultado_rpc(
+        data: Any,
+        mensagem_erro: str,
+    ) -> dict[str, Any]:
         if isinstance(data, list) and data:
             resultado = data[0]
             if isinstance(resultado, dict):
