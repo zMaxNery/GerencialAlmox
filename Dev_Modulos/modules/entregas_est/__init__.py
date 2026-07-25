@@ -1,1 +1,1 @@
-"""Módulo operacional de apontamento das entregas EST."""
+"""Módulo de apontamento das requisições EST."""

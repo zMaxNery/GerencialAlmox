@@ -28,7 +28,7 @@ class JanelaAjusteMaterialFabrica(ctk.CTkToplevel):
         )
 
         self.title("Ajustar material em fábrica")
-        self.geometry("660x600")
+        self.geometry("700x600")
         self.minsize(620, 560)
         self.transient(parent.winfo_toplevel())
         self.grab_set()

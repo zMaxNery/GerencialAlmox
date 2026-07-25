@@ -8,9 +8,8 @@ from tkinter import messagebox, ttk
 import customtkinter as ctk
 
 from core.almox_repository import AlmoxRepository
-
 from modules.entregas_est.fabrica_dialog import JanelaUsoMaterialFabrica
-from datetime import datetime
+
 
 class EntregasEstView(ctk.CTkFrame):
     COLUMNS = (
@@ -32,6 +31,7 @@ class EntregasEstView(ctk.CTkFrame):
         self.repository: AlmoxRepository | None = None
         self.all_rows: list[dict] = []
         self.rows: dict[str, dict] = {}
+        self.saldos_fabrica: dict[int, dict] = {}
         self.quantidade_var = ctk.StringVar(value="")
 
         self.grid_columnconfigure(0, weight=1)
@@ -64,7 +64,9 @@ class EntregasEstView(ctk.CTkFrame):
         filtros.grid(row=1, column=0, sticky="ew", padx=20, pady=8)
 
         ctk.CTkLabel(filtros, text="Setor:").pack(
-            side="left", padx=(10, 4), pady=10
+            side="left",
+            padx=(10, 4),
+            pady=10,
         )
         self.setor_filter = ctk.CTkOptionMenu(
             filtros,
@@ -76,7 +78,9 @@ class EntregasEstView(ctk.CTkFrame):
         self.setor_filter.pack(side="left", padx=(0, 8), pady=10)
 
         ctk.CTkLabel(filtros, text="Data:").pack(
-            side="left", padx=(4, 4), pady=10
+            side="left",
+            padx=(4, 4),
+            pady=10,
         )
         self.data_filter = ctk.CTkOptionMenu(
             filtros,
@@ -88,7 +92,9 @@ class EntregasEstView(ctk.CTkFrame):
         self.data_filter.pack(side="left", padx=(0, 8), pady=10)
 
         ctk.CTkLabel(filtros, text="Estoque:").pack(
-            side="left", padx=(4, 4), pady=10
+            side="left",
+            padx=(4, 4),
+            pady=10,
         )
         self.estoque_filter = ctk.CTkOptionMenu(
             filtros,
@@ -100,7 +106,9 @@ class EntregasEstView(ctk.CTkFrame):
         self.estoque_filter.pack(side="left", padx=(0, 8), pady=10)
 
         ctk.CTkLabel(filtros, text="Material:").pack(
-            side="left", padx=(4, 4), pady=10
+            side="left",
+            padx=(4, 4),
+            pady=10,
         )
         self.material_filter = ctk.CTkEntry(
             filtros,
@@ -114,7 +122,9 @@ class EntregasEstView(ctk.CTkFrame):
         )
 
         ctk.CTkLabel(filtros, text="Rastreabilidade:").pack(
-            side="left", padx=(4, 4), pady=10
+            side="left",
+            padx=(4, 4),
+            pady=10,
         )
         self.rastreabilidade_filter = ctk.CTkEntry(
             filtros,
@@ -149,7 +159,6 @@ class EntregasEstView(ctk.CTkFrame):
             padx=20,
             pady=(8, 20),
         )
-
         conteudo.grid_columnconfigure(0, weight=1)
         conteudo.grid_columnconfigure(1, weight=0)
         conteudo.grid_rowconfigure(0, weight=1)
@@ -158,7 +167,7 @@ class EntregasEstView(ctk.CTkFrame):
         self._build_keypad(conteudo)
 
     def _build_keypad(self, parent) -> None:
-        painel = ctk.CTkFrame(parent, width=280)
+        painel = ctk.CTkFrame(parent, width=290)
         painel.grid(row=0, column=1, sticky="nse", padx=(10, 0))
         painel.grid_propagate(False)
         painel.grid_columnconfigure((0, 1, 2), weight=1)
@@ -181,7 +190,7 @@ class EntregasEstView(ctk.CTkFrame):
             text="Nenhum item selecionado",
             anchor="w",
             justify="left",
-            wraplength=250,
+            wraplength=260,
         )
         self.selected_label.grid(
             row=1,
@@ -189,15 +198,33 @@ class EntregasEstView(ctk.CTkFrame):
             columnspan=3,
             sticky="ew",
             padx=12,
-            pady=(0, 10),
+            pady=(0, 4),
         )
+
+        self.fabrica_label = ctk.CTkLabel(
+            painel,
+            text="",
+            anchor="w",
+            justify="left",
+            text_color="#39A96B",
+            font=ctk.CTkFont(size=15, weight="bold"),
+        )
+        self.fabrica_label.grid(
+            row=2,
+            column=0,
+            columnspan=3,
+            sticky="ew",
+            padx=12,
+            pady=(0, 8),
+        )
+        self.fabrica_label.grid_remove()
 
         ctk.CTkLabel(
             painel,
             text="Quantidade entregue",
             font=ctk.CTkFont(size=14, weight="bold"),
         ).grid(
-            row=2,
+            row=3,
             column=0,
             columnspan=3,
             sticky="w",
@@ -209,12 +236,13 @@ class EntregasEstView(ctk.CTkFrame):
             painel,
             textvariable=self.quantidade_var,
             height=58,
+            justify="right",
             fg_color=("#FFFFFF", "#151515"),
             corner_radius=6,
             font=ctk.CTkFont(size=28, weight="bold"),
         )
         self.quantidade_display.grid(
-            row=3,
+            row=4,
             column=0,
             columnspan=3,
             sticky="ew",
@@ -223,18 +251,18 @@ class EntregasEstView(ctk.CTkFrame):
         )
 
         botoes = (
-            ("7", 4, 0),
-            ("8", 4, 1),
-            ("9", 4, 2),
-            ("4", 5, 0),
-            ("5", 5, 1),
-            ("6", 5, 2),
-            ("1", 6, 0),
-            ("2", 6, 1),
-            ("3", 6, 2),
-            ("0", 7, 0),
-            ("00", 7, 1),
-            (",", 7, 2),
+            ("7", 5, 0),
+            ("8", 5, 1),
+            ("9", 5, 2),
+            ("4", 6, 0),
+            ("5", 6, 1),
+            ("6", 6, 2),
+            ("1", 7, 0),
+            ("2", 7, 1),
+            ("3", 7, 2),
+            ("0", 8, 0),
+            ("00", 8, 1),
+            (",", 8, 2),
         )
 
         for texto, linha, coluna in botoes:
@@ -256,43 +284,25 @@ class EntregasEstView(ctk.CTkFrame):
             painel,
             text="Apagar",
             command=self._keypad_backspace,
-        ).grid(
-            row=8,
-            column=0,
-            sticky="ew",
-            padx=5,
-            pady=5,
-        )
+        ).grid(row=9, column=0, sticky="ew", padx=5, pady=5)
 
         ctk.CTkButton(
             painel,
             text="Limpar",
             command=self._keypad_clear,
-        ).grid(
-            row=8,
-            column=1,
-            sticky="ew",
-            padx=5,
-            pady=5,
-        )
+        ).grid(row=9, column=1, sticky="ew", padx=5, pady=5)
 
         ctk.CTkButton(
             painel,
             text="Total",
             command=self._keypad_fill_remaining,
-        ).grid(
-            row=8,
-            column=2,
-            sticky="ew",
-            padx=5,
-            pady=5,
-        )
+        ).grid(row=9, column=2, sticky="ew", padx=5, pady=5)
 
         ctk.CTkLabel(
             painel,
             text="Operador:",
         ).grid(
-            row=9,
+            row=10,
             column=0,
             columnspan=3,
             sticky="w",
@@ -303,7 +313,7 @@ class EntregasEstView(ctk.CTkFrame):
         self.operator_entry = ctk.CTkEntry(painel)
         self.operator_entry.insert(0, getpass.getuser())
         self.operator_entry.grid(
-            row=10,
+            row=11,
             column=0,
             columnspan=3,
             sticky="ew",
@@ -315,7 +325,7 @@ class EntregasEstView(ctk.CTkFrame):
             painel,
             text="Observação:",
         ).grid(
-            row=11,
+            row=12,
             column=0,
             columnspan=3,
             sticky="w",
@@ -328,7 +338,7 @@ class EntregasEstView(ctk.CTkFrame):
             placeholder_text="Opcional",
         )
         self.note_entry.grid(
-            row=12,
+            row=13,
             column=0,
             columnspan=3,
             sticky="ew",
@@ -339,47 +349,16 @@ class EntregasEstView(ctk.CTkFrame):
         ctk.CTkButton(
             painel,
             text="Registrar entrega",
-            height=44,
+            height=46,
             font=ctk.CTkFont(size=15, weight="bold"),
             command=self.register_delivery,
         ).grid(
-            row=13,
-            column=0,
-            columnspan=3,
-            sticky="ew",
-            padx=12,
-            pady=(4, 6),
-        )
-
-        ctk.CTkButton(
-            painel,
-            text="Verificar material em fábrica",
-            height=42,
-            fg_color="#557A95",
-            hover_color="#2F80ED",
-            command=self.verificar_material_fabrica,
-        ).grid(
             row=14,
             column=0,
             columnspan=3,
             sticky="ew",
             padx=12,
-            pady=(0, 12),
-        )
-
-        ctk.CTkButton(
-            painel,
-            text="Usar material em fábrica",
-            height=44,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            command=self.usar_material_fabrica,
-        ).grid(
-            row=14,
-            column=0,
-            columnspan=3,
-            sticky="ew",
-            padx=12,
-            pady=(0, 12),
+            pady=(4, 12),
         )
 
     def _build_table(self, parent) -> None:
@@ -430,7 +409,6 @@ class EntregasEstView(ctk.CTkFrame):
             "setor": "Setor",
             "estoque": "Estoque",
         }
-
         widths = {
             "data": 110,
             "horario": 80,
@@ -446,12 +424,7 @@ class EntregasEstView(ctk.CTkFrame):
 
         for column in self.COLUMNS:
             largura = widths[column]
-
-            self.tree.heading(
-                column,
-                text=labels[column],
-            )
-
+            self.tree.heading(column, text=labels[column])
             self.tree.column(
                 column,
                 width=largura,
@@ -463,19 +436,19 @@ class EntregasEstView(ctk.CTkFrame):
         self.tree.column("material", anchor="w")
         self.tree.column("dimensao", anchor="w")
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
+        self.tree.bind(
+            "<Shift-MouseWheel>",
+            self._rolar_horizontal,
+        )
 
         y_scroll = ctk.CTkScrollbar(
             container,
             orientation="vertical",
             command=self.tree.yview,
-
-            # Espessura da barra vertical
             width=22,
-
             fg_color=("gray85", "gray20"),
             button_color=("#557A95", "#557A95"),
             button_hover_color=("#2F80ED", "#2F80ED"),
-
             corner_radius=6,
             border_spacing=3,
         )
@@ -484,14 +457,10 @@ class EntregasEstView(ctk.CTkFrame):
             container,
             orientation="horizontal",
             command=self.tree.xview,
-
-            # Espessura da barra horizontal
             height=22,
-
             fg_color=("gray85", "gray20"),
             button_color=("#557A95", "#557A95"),
             button_hover_color=("#2F80ED", "#2F80ED"),
-
             corner_radius=6,
             border_spacing=3,
         )
@@ -511,6 +480,7 @@ class EntregasEstView(ctk.CTkFrame):
                 self.repository = AlmoxRepository()
 
             self.all_rows = self.repository.listar_pendencias_est()
+            self.saldos_fabrica.clear()
 
         except Exception as exc:
             messagebox.showerror("Requisições", str(exc))
@@ -552,9 +522,7 @@ class EntregasEstView(ctk.CTkFrame):
         data = self.data_filter.get().strip()
         estoque = self.estoque_filter.get().strip()
         material = self.material_filter.get().strip().lower()
-        rastreabilidade = (
-            self.rastreabilidade_filter.get().strip().lower()
-        )
+        rastreabilidade = self.rastreabilidade_filter.get().strip().lower()
 
         filtered: list[dict] = []
 
@@ -562,19 +530,19 @@ class EntregasEstView(ctk.CTkFrame):
             if setor != "TODOS" and str(row.get("setor") or "") != setor:
                 continue
 
-            if data != "TODAS" and self._fmt_date(
-                row.get("data_requisicao")
-            ) != data:
+            if (
+                data != "TODAS"
+                and self._fmt_date(row.get("data_requisicao")) != data
+            ):
                 continue
 
-            if estoque != "TODOS" and str(
-                row.get("localizacao") or ""
-            ) != estoque:
+            if (
+                estoque != "TODOS"
+                and str(row.get("localizacao") or "") != estoque
+            ):
                 continue
 
-            if material and material not in str(
-                row.get("material") or ""
-            ).lower():
+            if material and material not in str(row.get("material") or "").lower():
                 continue
 
             if rastreabilidade and rastreabilidade not in str(
@@ -585,9 +553,7 @@ class EntregasEstView(ctk.CTkFrame):
             filtered.append(row)
 
         self._fill_table(filtered)
-        self.counter_label.configure(
-            text=f"{len(filtered)} item(ns)"
-        )
+        self.counter_label.configure(text=f"{len(filtered)} item(ns)")
 
     def _fill_table(self, data: list[dict]) -> None:
         selected_before = self.tree.selection()
@@ -601,12 +567,7 @@ class EntregasEstView(ctk.CTkFrame):
         for indice, row in enumerate(data):
             key = str(row["item_requisicao_id"])
             self.rows[key] = row
-
-            tag_linha = (
-                "linha_par"
-                if indice % 2 == 0
-                else "linha_impar"
-            )
+            tag_linha = "linha_par" if indice % 2 == 0 else "linha_impar"
 
             self.tree.insert(
                 "",
@@ -631,10 +592,11 @@ class EntregasEstView(ctk.CTkFrame):
             self.tree.selection_set(selected_id)
             self.tree.focus(selected_id)
             self.tree.see(selected_id)
+            self._on_select()
+
         elif not data:
-            self.selected_label.configure(
-                text="Nenhum item encontrado"
-            )
+            self.selected_label.configure(text="Nenhum item encontrado")
+            self.fabrica_label.grid_remove()
             self.quantidade_var.set("")
 
     def _on_select(self, _event=None) -> None:
@@ -648,26 +610,59 @@ class EntregasEstView(ctk.CTkFrame):
 
         self.selected_label.configure(
             text=(
-                f"{row.get('material', '')} | "
-                f"{row.get('rastreabilidade', '')}\n"
-                f"Pendente para entrega: {self._fmt(row.get('quantidade_restante'))}"
+                f"{row.get('material', '')} | {row.get('dimensao', '')}\n"
+                f"Rastreabilidade: {row.get('rastreabilidade', '')}\n"
+                f"Falta: {self._fmt(row.get('quantidade_restante'))}"
             )
         )
-
         self.quantidade_var.set("")
+        self._atualizar_saldo_fabrica(row)
+
+    def _atualizar_saldo_fabrica(self, row: dict) -> None:
+        try:
+            consulta = self._consultar_material_fabrica(row, forcar=False)
+            disponivel = Decimal(
+                str(consulta.get("quantidade_disponivel") or 0)
+            )
+        except Exception:
+            self.fabrica_label.grid_remove()
+            return
+
+        if disponivel > 0:
+            self.fabrica_label.configure(
+                text=f"Em fábrica: {self._fmt(disponivel)} peça(s)"
+            )
+            self.fabrica_label.grid()
+        else:
+            self.fabrica_label.grid_remove()
+
+    def _consultar_material_fabrica(
+        self,
+        row: dict,
+        forcar: bool,
+    ) -> dict:
+        if self.repository is None:
+            self.repository = AlmoxRepository()
+
+        item_id = int(row["item_requisicao_id"])
+
+        if not forcar and item_id in self.saldos_fabrica:
+            return self.saldos_fabrica[item_id]
+
+        consulta = self.repository.consultar_material_fabrica(
+            item_requisicao_id=item_id,
+        )
+        self.saldos_fabrica[item_id] = consulta
+        return consulta
 
     def _keypad_add(self, value: str) -> None:
         atual = self.quantidade_var.get()
 
         if value == ",":
-            if "," in atual:
+            if "," in atual or "." in atual:
                 return
 
-            if not atual:
-                self.quantidade_var.set("0,")
-            else:
-                self.quantidade_var.set(f"{atual},")
-
+            self.quantidade_var.set((atual or "0") + ",")
             return
 
         novo = f"{atual}{value}"
@@ -683,16 +678,13 @@ class EntregasEstView(ctk.CTkFrame):
         self.quantidade_var.set(novo)
 
     def _keypad_backspace(self) -> None:
-        self.quantidade_var.set(
-            self.quantidade_var.get()[:-1]
-        )
+        self.quantidade_var.set(self.quantidade_var.get()[:-1])
 
     def _keypad_clear(self) -> None:
         self.quantidade_var.set("")
 
     def _keypad_fill_remaining(self) -> None:
         selected = self.tree.selection()
-
         if not selected:
             messagebox.showinfo(
                 "Entrega de MP",
@@ -712,66 +704,15 @@ class EntregasEstView(ctk.CTkFrame):
         self.setor_filter.set("TODOS")
         self.data_filter.set("TODAS")
         self.estoque_filter.set("TODOS")
-
         self.material_filter.delete(0, "end")
         self.rastreabilidade_filter.delete(0, "end")
-
         self._apply_filters()
 
     def register_delivery(self) -> None:
-        dados = self._obter_dados_apontamento()
-
-        if dados is None:
-            return
-
-        row, quantidade, nome_operador = dados
-
-        try:
-            if self.repository is None:
-                self.repository = AlmoxRepository()
-
-            resultado = self.repository.registrar_entrega(
-                item_requisicao_id=int(row["item_requisicao_id"]),
-                quantidade=quantidade,
-                nome_operador=nome_operador,
-                observacao=self.note_entry.get(),
-            )
-
-        except Exception as exc:
-            messagebox.showerror("Entrega de MP", str(exc))
-            self.refresh()
-            return
-
-        quantidade_excedente = Decimal(
-            str(resultado.get("quantidade_excedente") or 0)
-        )
-
-        mensagem = (
-            "Entrega registrada.\n"
-            f"Aplicado à requisição: "
-            f"{self._fmt(resultado.get('quantidade_entregue'))}\n"
-            f"Quantidade restante: "
-            f"{self._fmt(resultado.get('quantidade_restante'))}"
-        )
-
-        if quantidade_excedente > 0:
-            mensagem += (
-                "\n\nExcedente enviado para Materiais em fábrica: "
-                f"{self._fmt(quantidade_excedente)}"
-            )
-
-        messagebox.showinfo(
-            "Entrega de MP",
-            mensagem,
-        )
-
-        self._limpar_apos_apontamento()
-
-    def usar_material_fabrica(self) -> None:
         selected = self.tree.selection()
         if not selected:
             messagebox.showinfo(
-                "Material em fábrica",
+                "Entrega de MP",
                 "Selecione um item da lista.",
             )
             return
@@ -779,15 +720,19 @@ class EntregasEstView(ctk.CTkFrame):
         nome_operador = self.operator_entry.get().strip()
         if not nome_operador:
             messagebox.showinfo(
-                "Material em fábrica",
+                "Entrega de MP",
                 "Informe o nome do operador.",
             )
+            return
+
+        quantidade = self._ler_quantidade_principal()
+        if quantidade is None:
             return
 
         row = self.rows.get(selected[0])
         if row is None:
             messagebox.showerror(
-                "Material em fábrica",
+                "Entrega de MP",
                 "O item selecionado não está mais disponível.",
             )
             self.refresh()
@@ -797,41 +742,97 @@ class EntregasEstView(ctk.CTkFrame):
             self.repository = AlmoxRepository()
 
         try:
-            consulta = self.repository.consultar_material_fabrica(
-                item_requisicao_id=int(row["item_requisicao_id"]),
-            )
+            consulta = self._consultar_material_fabrica(row, forcar=True)
         except Exception as exc:
-            messagebox.showerror("Material em fábrica", str(exc))
-            return
-
-        disponivel = Decimal(
-            str(consulta.get("quantidade_disponivel") or 0)
-        )
-        if disponivel <= 0:
-            messagebox.showinfo(
-                "Material em fábrica",
+            messagebox.showerror(
+                "Entrega de MP",
                 (
-                    "Não há saldo disponível para esta combinação:\n\n"
-                    f"{row.get('material') or ''} × "
-                    f"{row.get('rastreabilidade') or ''}"
+                    "Não foi possível verificar o saldo em fábrica.\n\n"
+                    f"{exc}"
                 ),
             )
             return
 
-        JanelaUsoMaterialFabrica(
-            parent=self,
-            repository=self.repository,
-            item=row,
-            consulta=consulta,
+        disponivel = Decimal(str(consulta.get("quantidade_disponivel") or 0))
+
+        if disponivel > 0:
+            JanelaUsoMaterialFabrica(
+                parent=self,
+                repository=self.repository,
+                item=row,
+                consulta=consulta,
+                quantidade_informada=quantidade,
+                nome_operador=nome_operador,
+                observacao=self.note_entry.get().strip() or None,
+                on_success=self._apos_registro,
+            )
+            return
+
+        self._registrar_entrega_direta(
+            row=row,
+            quantidade=quantidade,
             nome_operador=nome_operador,
-            observacao=self.note_entry.get().strip() or None,
-            on_success=self._apos_uso_material_fabrica,
         )
 
-    def _apos_uso_material_fabrica(self) -> None:
+    def _registrar_entrega_direta(
+        self,
+        row: dict,
+        quantidade: Decimal,
+        nome_operador: str,
+    ) -> None:
+        try:
+            result = self.repository.registrar_entrega(
+                item_requisicao_id=int(row["item_requisicao_id"]),
+                quantidade=quantidade,
+                nome_operador=nome_operador,
+                observacao=self.note_entry.get().strip() or None,
+            )
+        except Exception as exc:
+            messagebox.showerror("Entrega de MP", str(exc))
+            self.refresh()
+            return
+
+        messagebox.showinfo(
+            "Entrega de MP",
+            (
+                "Entrega registrada.\n"
+                f"Quantidade aplicada: "
+                f"{self._fmt(result.get('quantidade_aplicada'))}\n"
+                f"Excedente criado: "
+                f"{self._fmt(result.get('quantidade_excedente'))}\n"
+                f"Quantidade restante: "
+                f"{self._fmt(result.get('quantidade_restante'))}"
+            ),
+        )
+
+        self._apos_registro()
+
+    def _apos_registro(self) -> None:
         self.quantidade_var.set("")
         self.note_entry.delete(0, "end")
+        self.fabrica_label.grid_remove()
         self.refresh()
+
+    def _ler_quantidade_principal(self) -> Decimal | None:
+        texto_quantidade = self.quantidade_var.get().strip().replace(",", ".")
+
+        try:
+            quantidade = Decimal(texto_quantidade)
+            if quantidade <= 0:
+                raise InvalidOperation
+        except (InvalidOperation, ValueError):
+            messagebox.showerror(
+                "Entrega de MP",
+                "Digite uma quantidade maior que zero.",
+            )
+            return None
+
+        return quantidade
+
+    def _rolar_horizontal(self, event) -> str:
+        direcao = -1 if event.delta > 0 else 1
+        self.tree.xview_scroll(direcao, "units")
+        return "break"
 
     def _unique_values(self, field: str) -> list[str]:
         return sorted(
@@ -842,199 +843,6 @@ class EntregasEstView(ctk.CTkFrame):
             },
             key=str.lower,
         )
-    
-    def _obter_dados_apontamento(self) -> tuple[dict, Decimal, str] | None:
-        selected = self.tree.selection()
-
-        if not selected:
-            messagebox.showinfo(
-                "Entrega de MP",
-                "Selecione um item da lista.",
-            )
-            return None
-
-        nome_operador = self.operator_entry.get().strip()
-
-        if not nome_operador:
-            messagebox.showinfo(
-                "Entrega de MP",
-                "Informe o nome do operador.",
-            )
-            return None
-
-        try:
-            texto_quantidade = (
-                self.quantidade_var.get()
-                .strip()
-                .replace(",", ".")
-            )
-            quantidade = Decimal(texto_quantidade)
-
-            if quantidade <= 0:
-                raise InvalidOperation
-
-        except (InvalidOperation, ValueError):
-            messagebox.showerror(
-                "Entrega de MP",
-                "Digite uma quantidade maior que zero.",
-            )
-            return None
-
-        row = self.rows.get(selected[0])
-
-        if row is None:
-            messagebox.showerror(
-                "Entrega de MP",
-                "O item selecionado não está mais disponível.",
-            )
-            return None
-
-        return row, quantidade, nome_operador
-
-
-    def _limpar_apos_apontamento(self) -> None:
-        self.quantidade_var.set("")
-        self.note_entry.delete(0, "end")
-        self.refresh()
-
-
-    def verificar_material_fabrica(self) -> None:
-        dados = self._obter_dados_apontamento()
-
-        if dados is None:
-            return
-
-        row, quantidade, nome_operador = dados
-
-        try:
-            if self.repository is None:
-                self.repository = AlmoxRepository()
-
-            saldo = self.repository.consultar_material_fabrica(
-                item_requisicao_id=int(row["item_requisicao_id"]),
-            )
-
-        except Exception as exc:
-            messagebox.showerror("Material em fábrica", str(exc))
-            return
-
-        quantidade_disponivel = Decimal(
-            str(saldo.get("quantidade_disponivel") or 0)
-        )
-        quantidade_restante = Decimal(
-            str(saldo.get("quantidade_restante") or 0)
-        )
-
-        material = saldo.get("material") or row.get("material") or ""
-        rastreabilidade = (
-            saldo.get("rastreabilidade")
-            or row.get("rastreabilidade")
-            or ""
-        )
-
-        if quantidade_disponivel <= 0:
-            usar_novo = messagebox.askyesno(
-                "Material em fábrica",
-                (
-                    "Não há saldo disponível para esta combinação.\n\n"
-                    f"Material: {material}\n"
-                    f"Rastreabilidade: {rastreabilidade}\n\n"
-                    "Deseja registrar a quantidade como material novo?"
-                ),
-            )
-
-            if usar_novo:
-                self.register_delivery()
-
-            return
-
-        if quantidade > quantidade_restante:
-            usar_novo = messagebox.askyesno(
-                "Material em fábrica",
-                (
-                    "A quantidade digitada ultrapassa o restante da "
-                    "requisição e não pode ser retirada integralmente "
-                    "do saldo em fábrica.\n\n"
-                    f"Digitado: {self._fmt(quantidade)}\n"
-                    f"Restante da requisição: "
-                    f"{self._fmt(quantidade_restante)}\n"
-                    f"Disponível na fábrica: "
-                    f"{self._fmt(quantidade_disponivel)}\n\n"
-                    "Deseja registrar como material novo?"
-                ),
-            )
-
-            if usar_novo:
-                self.register_delivery()
-
-            return
-
-        if quantidade > quantidade_disponivel:
-            usar_novo = messagebox.askyesno(
-                "Material em fábrica",
-                (
-                    "O saldo em fábrica é menor que a quantidade "
-                    "digitada.\n\n"
-                    f"Digitado: {self._fmt(quantidade)}\n"
-                    f"Disponível na fábrica: "
-                    f"{self._fmt(quantidade_disponivel)}\n\n"
-                    "Deseja registrar como material novo?"
-                ),
-            )
-
-            if usar_novo:
-                self.register_delivery()
-
-            return
-
-        escolha = messagebox.askyesnocancel(
-            "Material em fábrica",
-            (
-                f"Material: {material}\n"
-                f"Rastreabilidade: {rastreabilidade}\n"
-                f"Disponível na fábrica: "
-                f"{self._fmt(quantidade_disponivel)}\n"
-                f"Quantidade digitada: {self._fmt(quantidade)}\n\n"
-                "SIM: usar o material que já está na fábrica.\n"
-                "NÃO: registrar a entrega de material novo.\n"
-                "CANCELAR: não registrar nada."
-            ),
-        )
-
-        if escolha is None:
-            return
-
-        if escolha is False:
-            self.register_delivery()
-            return
-
-        try:
-            resultado = self.repository.registrar_entrega_material_fabrica(
-                item_requisicao_id=int(row["item_requisicao_id"]),
-                quantidade=quantidade,
-                nome_operador=nome_operador,
-                observacao=self.note_entry.get(),
-            )
-
-        except Exception as exc:
-            messagebox.showerror("Material em fábrica", str(exc))
-            self.refresh()
-            return
-
-        messagebox.showinfo(
-            "Material em fábrica",
-            (
-                "Entrega registrada usando o saldo da fábrica.\n"
-                f"Quantidade entregue: "
-                f"{self._fmt(resultado.get('quantidade_entregue'))}\n"
-                f"Restante da requisição: "
-                f"{self._fmt(resultado.get('quantidade_restante'))}\n"
-                f"Saldo da fábrica: "
-                f"{self._fmt(resultado.get('saldo_fabrica_restante'))}"
-            ),
-        )
-
-        self._limpar_apos_apontamento()
 
     @staticmethod
     def _set_option_values(
@@ -1056,13 +864,10 @@ class EntregasEstView(ctk.CTkFrame):
         text = str(value)[:10]
 
         try:
-            return datetime.strptime(
-                text,
-                "%Y-%m-%d",
-            ).strftime("%d/%m/%Y")
+            return datetime.strptime(text, "%Y-%m-%d").strftime("%d/%m/%Y")
         except ValueError:
             return text
-        
+
     @staticmethod
     def _fmt_hora(value) -> str:
         if not value:
@@ -1072,12 +877,10 @@ class EntregasEstView(ctk.CTkFrame):
             texto = str(value).strip().replace("Z", "+00:00")
             data_hora = datetime.fromisoformat(texto)
 
-            # Converte para o horário local do computador.
             if data_hora.tzinfo is not None:
                 data_hora = data_hora.astimezone()
 
             return data_hora.strftime("%H:%M")
-
         except (ValueError, TypeError):
             return ""
 
@@ -1089,4 +892,3 @@ class EntregasEstView(ctk.CTkFrame):
         number = Decimal(str(value))
         text = f"{number:.3f}".rstrip("0").rstrip(".")
         return text or "0"
-    

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
 from tkinter import messagebox
+from typing import Callable
 
 import customtkinter as ctk
 
@@ -9,10 +10,11 @@ from core.almox_repository import AlmoxRepository
 
 
 class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
-    """Escolhe entre entrega parcial pela fábrica ou entrega mista."""
+    """Decide a origem do material quando há saldo disponível na fábrica."""
 
-    OPCAO_SOMENTE = "Somente fábrica"
+    OPCAO_SOMENTE_FABRICA = "Somente fábrica"
     OPCAO_MISTA = "Fábrica + estoque"
+    OPCAO_SOMENTE_ESTOQUE = "Somente estoque"
 
     def __init__(
         self,
@@ -20,15 +22,17 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         repository: AlmoxRepository,
         item: dict,
         consulta: dict,
+        quantidade_informada: Decimal,
         nome_operador: str,
         observacao: str | None,
-        on_success,
+        on_success: Callable[[], None],
     ) -> None:
         super().__init__(parent)
 
         self.repository = repository
         self.item = item
         self.consulta = consulta
+        self.quantidade_informada = Decimal(str(quantidade_informada))
         self.nome_operador = nome_operador
         self.observacao = observacao
         self.on_success = on_success
@@ -37,14 +41,20 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             str(consulta.get("quantidade_disponivel") or 0)
         )
         self.quantidade_restante = Decimal(
-            str(consulta.get("quantidade_restante_requisicao") or 0)
+            str(
+                consulta.get("quantidade_restante_requisicao")
+                or item.get("quantidade_restante")
+                or 0
+            )
         )
-        self.quantidade_var = ctk.StringVar(value="")
-        self.modo_var = ctk.StringVar(value=self.OPCAO_SOMENTE)
 
-        self.title("Usar material em fábrica")
-        self.geometry("800x600")
-        self.minsize(650, 560)
+        self.quantidade_var = ctk.StringVar(value="")
+        self.modo_var = ctk.StringVar(value=self.OPCAO_SOMENTE_FABRICA)
+
+        self.title("Origem do material")
+        self.geometry("780x640")
+        self.minsize(740, 610)
+        self.resizable(True, True)
         self.transient(parent.winfo_toplevel())
         self.grab_set()
         self.focus_force()
@@ -57,7 +67,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         self._build_mode()
         self._build_form()
         self._build_keypad()
-        self._atualizar_modo(self.OPCAO_SOMENTE)
+        self._atualizar_modo(self.OPCAO_SOMENTE_FABRICA)
 
         self.protocol("WM_DELETE_WINDOW", self._fechar)
 
@@ -94,8 +104,9 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         ctk.CTkLabel(
             frame,
             text=(
-                f"Disponível: {self._fmt(self.quantidade_disponivel)}   |   "
-                f"Falta na requisição: {self._fmt(self.quantidade_restante)}"
+                f"Em fábrica: {self._fmt(self.quantidade_disponivel)}   |   "
+                f"Falta na requisição: {self._fmt(self.quantidade_restante)}   |   "
+                f"Digitado: {self._fmt(self.quantidade_informada)}"
             ),
             text_color="#E6A23C",
             font=ctk.CTkFont(size=15, weight="bold"),
@@ -104,10 +115,14 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
     def _build_mode(self) -> None:
         self.segmented = ctk.CTkSegmentedButton(
             self,
-            values=[self.OPCAO_SOMENTE, self.OPCAO_MISTA],
+            values=[
+                self.OPCAO_SOMENTE_FABRICA,
+                self.OPCAO_MISTA,
+                self.OPCAO_SOMENTE_ESTOQUE,
+            ],
             variable=self.modo_var,
             command=self._atualizar_modo,
-            height=38,
+            height=40,
             font=ctk.CTkFont(size=14, weight="bold"),
         )
         self.segmented.grid(
@@ -118,7 +133,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             padx=20,
             pady=(4, 12),
         )
-        self.segmented.set(self.OPCAO_SOMENTE)
+        self.segmented.set(self.OPCAO_SOMENTE_FABRICA)
 
     def _build_form(self) -> None:
         form = ctk.CTkFrame(self)
@@ -130,13 +145,14 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             pady=(0, 20),
         )
         form.grid_columnconfigure(0, weight=1)
+        form.grid_rowconfigure(3, weight=1)
 
         self.instrucao_label = ctk.CTkLabel(
             form,
             text="",
             anchor="w",
             justify="left",
-            wraplength=330,
+            wraplength=390,
             font=ctk.CTkFont(size=14),
         )
         self.instrucao_label.grid(
@@ -179,15 +195,15 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         self.previa_label = ctk.CTkLabel(
             form,
             text="",
-            anchor="w",
+            anchor="nw",
             justify="left",
-            wraplength=330,
+            wraplength=390,
             font=ctk.CTkFont(size=14),
         )
         self.previa_label.grid(
             row=3,
             column=0,
-            sticky="ew",
+            sticky="nsew",
             padx=15,
             pady=(4, 12),
         )
@@ -221,7 +237,10 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             pady=(0, 15),
         )
 
-        self.quantidade_var.trace_add("write", lambda *_args: self._atualizar_previa())
+        self.quantidade_var.trace_add(
+            "write",
+            lambda *_args: self._atualizar_previa(),
+        )
 
     def _build_keypad(self) -> None:
         keypad = ctk.CTkFrame(self)
@@ -281,38 +300,65 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         ).grid(row=4, column=2, padx=5, pady=5, sticky="ew")
 
     def _atualizar_modo(self, modo: str) -> None:
-        self.quantidade_var.set("")
-
-        if modo == self.OPCAO_SOMENTE:
-            self.quantidade_label.configure(text="Quantidade a usar da fábrica:")
+        if modo == self.OPCAO_SOMENTE_FABRICA:
+            valor_inicial = min(
+                self.quantidade_informada,
+                self.quantidade_disponivel,
+                self.quantidade_restante,
+            )
+            self.quantidade_label.configure(
+                text="Quantidade a usar da fábrica:"
+            )
             self.instrucao_label.configure(
                 text=(
-                    "Informe quanto do saldo\n"
-                    "da fábrica será usado. "
+                    "Use somente o material que já está na fábrica. "
+                    "A quantidade pode ser menor que o saldo e gerar uma entrega parcial."
                 )
             )
+
+        elif modo == self.OPCAO_MISTA:
+            valor_inicial = self.quantidade_informada
+            self.quantidade_label.configure(
+                text="Quantidade nova enviada do estoque:"
+            )
+            self.instrucao_label.configure(
+                text=(
+                    "O sistema utilizará primeiro todo o saldo possível da fábrica. "
+                    "A quantidade abaixo representa somente o material novo enviado "
+                    "pelo operador."
+                )
+            )
+
         else:
-            self.quantidade_label.configure(text="Quantidade nova enviada do estoque:")
+            valor_inicial = self.quantidade_informada
+            self.quantidade_label.configure(
+                text="Quantidade nova enviada do estoque:"
+            )
             self.instrucao_label.configure(
                 text=(
-                    "O sistema usará primeiro\n"
-                    "todo o saldo possível da fábrica.\n\n"
-                    "Informe apenas quanto será\n"
-                    "enviado como material novo."
+                    "Ignore o saldo em fábrica e registre somente o material novo "
+                    "digitado no apontamento."
                 )
             )
 
+        self.quantidade_var.set(
+            self._fmt(valor_inicial).replace(".", ",")
+        )
         self._atualizar_previa()
 
     def _preencher_maximo(self) -> None:
-        if self.modo_var.get() == self.OPCAO_SOMENTE:
+        modo = self.modo_var.get()
+
+        if modo == self.OPCAO_SOMENTE_FABRICA:
             valor = min(self.quantidade_disponivel, self.quantidade_restante)
-        else:
+        elif modo == self.OPCAO_MISTA:
             valor = max(
                 self.quantidade_restante
                 - min(self.quantidade_disponivel, self.quantidade_restante),
                 Decimal("0"),
             )
+        else:
+            valor = self.quantidade_restante
 
         self.quantidade_var.set(self._fmt(valor).replace(".", ","))
 
@@ -322,26 +368,62 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             self.previa_label.configure(text="")
             return
 
-        if self.modo_var.get() == self.OPCAO_SOMENTE:
-            usado = min(quantidade, self.quantidade_disponivel, self.quantidade_restante)
+        modo = self.modo_var.get()
+
+        if modo == self.OPCAO_SOMENTE_FABRICA:
+            usado = min(
+                quantidade,
+                self.quantidade_disponivel,
+                self.quantidade_restante,
+            )
+            saldo_final = max(
+                self.quantidade_disponivel - usado,
+                Decimal("0"),
+            )
             restante = max(self.quantidade_restante - usado, Decimal("0"))
+
             self.previa_label.configure(
                 text=(
-                    f"Será usado da fábrica: {self._fmt(usado)}\n"
+                    f"Usado da fábrica: {self._fmt(usado)}\n"
+                    f"Saldo final na fábrica: {self._fmt(saldo_final)}\n"
                     f"Restará na requisição: {self._fmt(restante)}"
                 )
             )
             return
 
-        fabrica = min(self.quantidade_disponivel, self.quantidade_restante)
-        restante_apos_fabrica = max(self.quantidade_restante - fabrica, Decimal("0"))
-        novo_aplicado = min(quantidade, restante_apos_fabrica)
+        if modo == self.OPCAO_MISTA:
+            fabrica = min(self.quantidade_disponivel, self.quantidade_restante)
+            restante_apos_fabrica = max(
+                self.quantidade_restante - fabrica,
+                Decimal("0"),
+            )
+            novo_aplicado = min(quantidade, restante_apos_fabrica)
+            excedente = max(quantidade - novo_aplicado, Decimal("0"))
+            restante_final = max(
+                restante_apos_fabrica - novo_aplicado,
+                Decimal("0"),
+            )
+
+            self.previa_label.configure(
+                text=(
+                    f"Usado da fábrica: {self._fmt(fabrica)}\n"
+                    f"Material novo aplicado: {self._fmt(novo_aplicado)}\n"
+                    f"Novo excedente: {self._fmt(excedente)}\n"
+                    f"Restará na requisição: {self._fmt(restante_final)}"
+                )
+            )
+            return
+
+        novo_aplicado = min(quantidade, self.quantidade_restante)
         excedente = max(quantidade - novo_aplicado, Decimal("0"))
-        restante_final = max(restante_apos_fabrica - novo_aplicado, Decimal("0"))
+        restante_final = max(
+            self.quantidade_restante - novo_aplicado,
+            Decimal("0"),
+        )
 
         self.previa_label.configure(
             text=(
-                f"Usado da fábrica: {self._fmt(fabrica)}\n"
+                "O saldo existente na fábrica não será utilizado.\n"
                 f"Material novo aplicado: {self._fmt(novo_aplicado)}\n"
                 f"Novo excedente: {self._fmt(excedente)}\n"
                 f"Restará na requisição: {self._fmt(restante_final)}"
@@ -353,13 +435,21 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         if quantidade is None:
             return
 
+        modo = self.modo_var.get()
+
         try:
-            if self.modo_var.get() == self.OPCAO_SOMENTE:
-                limite = min(self.quantidade_disponivel, self.quantidade_restante)
+            if modo == self.OPCAO_SOMENTE_FABRICA:
+                limite = min(
+                    self.quantidade_disponivel,
+                    self.quantidade_restante,
+                )
                 if quantidade > limite:
                     messagebox.showerror(
                         "Material em fábrica",
-                        f"A quantidade máxima para esta opção é {self._fmt(limite)}.",
+                        (
+                            "A quantidade máxima disponível para esta opção é "
+                            f"{self._fmt(limite)}."
+                        ),
                         parent=self,
                     )
                     return
@@ -370,7 +460,8 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
                     nome_operador=self.nome_operador,
                     observacao=self.observacao,
                 )
-            else:
+
+            elif modo == self.OPCAO_MISTA:
                 resultado = self.repository.registrar_entrega_mista(
                     item_requisicao_id=int(self.item["item_requisicao_id"]),
                     quantidade_nova=quantidade,
@@ -378,21 +469,45 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
                     observacao=self.observacao,
                 )
 
+            else:
+                resultado = self.repository.registrar_entrega(
+                    item_requisicao_id=int(self.item["item_requisicao_id"]),
+                    quantidade=quantidade,
+                    nome_operador=self.nome_operador,
+                    observacao=self.observacao,
+                )
+
         except Exception as exc:
-            messagebox.showerror("Material em fábrica", str(exc), parent=self)
+            messagebox.showerror(
+                "Entrega de MP",
+                str(exc),
+                parent=self,
+            )
             return
 
-        messagebox.showinfo(
-            "Material em fábrica",
-            (
+        if modo == self.OPCAO_SOMENTE_ESTOQUE:
+            mensagem = (
+                "Entrega registrada somente com material novo.\n\n"
+                f"Quantidade restante: "
+                f"{self._fmt(resultado.get('quantidade_restante'))}\n"
+                f"Excedente criado: "
+                f"{self._fmt(resultado.get('quantidade_excedente'))}"
+            )
+        else:
+            mensagem = (
                 "Apontamento registrado.\n\n"
                 f"Fábrica: {self._fmt(resultado.get('quantidade_fabrica'))}\n"
                 f"Material novo aplicado: "
                 f"{self._fmt(resultado.get('quantidade_nova_aplicada'))}\n"
-                f"Excedente criado: {self._fmt(resultado.get('quantidade_excedente'))}\n"
+                f"Excedente criado: "
+                f"{self._fmt(resultado.get('quantidade_excedente'))}\n"
                 f"Restante da requisição: "
                 f"{self._fmt(resultado.get('quantidade_restante'))}"
-            ),
+            )
+
+        messagebox.showinfo(
+            "Entrega de MP",
+            mensagem,
             parent=self,
         )
 
@@ -401,6 +516,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
 
     def _ler_quantidade(self, silencioso: bool = False) -> Decimal | None:
         texto = self.quantidade_var.get().strip().replace(",", ".")
+
         try:
             quantidade = Decimal(texto)
             if quantidade <= 0:
@@ -408,7 +524,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         except (InvalidOperation, ValueError):
             if not silencioso:
                 messagebox.showerror(
-                    "Material em fábrica",
+                    "Entrega de MP",
                     "Informe uma quantidade maior que zero.",
                     parent=self,
                 )
@@ -427,6 +543,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
 
         novo = atual + valor
         separador = "," if "," in novo else "." if "." in novo else None
+
         if separador and len(novo.split(separador, 1)[1]) > 3:
             return
 
@@ -443,11 +560,13 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             self.grab_release()
         except Exception:
             pass
+
         self.destroy()
 
     @staticmethod
     def _fmt(value) -> str:
         if value in (None, ""):
             return "0"
+
         numero = Decimal(str(value))
         return f"{numero:.3f}".rstrip("0").rstrip(".") or "0"
