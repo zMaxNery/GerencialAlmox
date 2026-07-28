@@ -7,7 +7,7 @@ from core.supabase_client import get_supabase
 
 
 class AlmoxRepository:
-    """Acesso centralizado às tabelas, visões e RPCs do Supabase."""
+    # Acesso nas tabelas do supabase
 
     def __init__(self) -> None:
         self.client = get_supabase()

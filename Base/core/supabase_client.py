@@ -7,6 +7,7 @@ from supabase import Client, create_client
 from config.settings import BASE_PATH
 
 
+# Conexão com o banco de dados
 @lru_cache(maxsize=1)
 def get_supabase() -> Client:
     env_path = BASE_PATH / ".env"

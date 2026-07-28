@@ -11,7 +11,7 @@ from config.settings import BASE_PATH
 
 
 class ModuleLoader:
-    PREFIXO_MODULO = "gerencial_modulo_"
+    PREFIXO_MODULO = "almox_modulo_"
 
     @staticmethod
     def _pasta_modules() -> Path:
@@ -33,11 +33,10 @@ class ModuleLoader:
                 remover = True
 
             # Pacotes importados pelos próprios módulos:
-            # modules.entregas_est.view, modules.importador_emails.models etc.
             if nome == "modules" or nome.startswith("modules."):
                 remover = True
 
-            # Proteção adicional: verifica a localização física do arquivo.
+            # Verifica a localização física do arquivo.
             arquivo = getattr(modulo, "__file__", None)
 
             if arquivo:
@@ -65,10 +64,10 @@ class ModuleLoader:
         importlib.invalidate_caches()
 
     @classmethod
-    def carregar_modulos(
-        cls,
-        recarregar: bool = False,
-    ) -> list[ModuleType]:
+    def carregar_modulos(cls, recarregar: bool = False) -> list[ModuleType]:
+        '''
+        Carrega os módulos que estão na pasta "modules"
+        '''
         modulos: list[ModuleType] = []
         pasta_modules = cls._pasta_modules()
 
@@ -78,17 +77,12 @@ class ModuleLoader:
         if not pasta_modules.exists():
             return modulos
 
-        # Permite imports como:
-        # from modules.entregas_est.view import EntregasEstView
         if str(BASE_PATH) not in sys.path:
             sys.path.insert(0, str(BASE_PATH))
 
         importlib.invalidate_caches()
 
-        for pasta in sorted(
-            pasta_modules.iterdir(),
-            key=lambda item: item.name.lower(),
-        ):
+        for pasta in sorted(pasta_modules.iterdir(), key=lambda item: item.name.lower()):
             if not pasta.is_dir():
                 continue
 
@@ -103,15 +97,10 @@ class ModuleLoader:
             nome_modulo = f"{cls.PREFIXO_MODULO}{pasta.name}"
 
             try:
-                spec = importlib.util.spec_from_file_location(
-                    nome_modulo,
-                    manifest,
-                )
+                spec = importlib.util.spec_from_file_location(nome_modulo, manifest)
 
                 if spec is None or spec.loader is None:
-                    raise ImportError(
-                        f"Não foi possível carregar {manifest}."
-                    )
+                    raise ImportError(f"Não foi possível carregar {manifest}.")
 
                 modulo = importlib.util.module_from_spec(spec)
 

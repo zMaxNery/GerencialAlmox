@@ -1,8 +1,7 @@
 from modules.importador_emails.view import ImportadorEmailsView
 
-NOME = "Importar E-mails"
+NOME = "Importar Requisições"
 ORDEM = 1
-
 
 def abrir(parent):
     for widget in parent.winfo_children():

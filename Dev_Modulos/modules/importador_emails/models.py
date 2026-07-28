@@ -41,7 +41,6 @@ class ItemRequisicao:
             "indice_linha_origem": self.indice_linha_origem,
         }
 
-
 @dataclass(slots=True)
 class ItemResumoTotvs:
     tipo_material: str
@@ -68,7 +67,6 @@ class ItemResumoTotvs:
             "indice_tabela_origem": self.indice_tabela_origem,
             "indice_linha_origem": self.indice_linha_origem,
         }
-
 
 @dataclass(slots=True)
 class EmailProcessado:
@@ -117,7 +115,6 @@ class EmailProcessado:
 
     def payload_itens_resumo(self) -> list[dict[str, Any]]:
         return [item.to_dict() for item in self.itens_resumo]
-
 
 # Apelidos temporários para facilitar a transição de imports antigos.
 RequestItem = ItemRequisicao
