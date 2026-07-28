@@ -307,11 +307,13 @@ class MsgParser:
 
     @staticmethod
     def calcular_hash(path: Path) -> str:
-        hasher = hashlib.sha256()
-        with path.open("rb") as stream:
-            while chunk := stream.read(1024 * 1024):
-                hasher.update(chunk)
-        return hasher.hexdigest()
+        # A identificação é baseada no Internet Message-ID. Quando ele não
+        # existe, usa uma impressão digital canônica do conteúdo do e-mail.
+        # Dessa forma, salvar o mesmo e-mail novamente como .msg não cria
+        # uma chave diferente apenas porque o arquivo binário foi recriado.
+        from modules._shared.email_identity import calcular_identificador_msg
+
+        return calcular_identificador_msg(path)
 
     # Mantém o nome antigo para chamadas externas já existentes.
     calculate_hash = calcular_hash

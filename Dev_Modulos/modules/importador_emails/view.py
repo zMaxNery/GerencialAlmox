@@ -8,7 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 
 import customtkinter as ctk
 
-from core.almox_repository import AlmoxRepository
+from modules._shared.almox_repository import AlmoxRepository
 from modules.importador_emails.models import EmailProcessado
 from modules.importador_emails.msg_parser import MsgParser
 

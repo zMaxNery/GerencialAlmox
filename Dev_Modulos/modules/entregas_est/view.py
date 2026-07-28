@@ -7,7 +7,7 @@ from tkinter import messagebox, ttk
 
 import customtkinter as ctk
 
-from core.almox_repository import AlmoxRepository
+from modules._shared.almox_repository import AlmoxRepository
 from modules.entregas_est.fabrica_dialog import JanelaUsoMaterialFabrica
 
 

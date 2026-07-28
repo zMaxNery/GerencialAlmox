@@ -6,7 +6,7 @@ from typing import Callable
 
 import customtkinter as ctk
 
-from core.almox_repository import AlmoxRepository
+from modules._shared.almox_repository import AlmoxRepository
 
 
 class JanelaUsoMaterialFabrica(ctk.CTkToplevel):

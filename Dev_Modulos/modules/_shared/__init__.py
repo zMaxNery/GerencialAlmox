@@ -1,0 +1,1 @@
+"""Recursos compartilhados pelos módulos"""

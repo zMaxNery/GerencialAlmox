@@ -3,11 +3,13 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from core.supabase_client import get_supabase
+from modules._shared.supabase_client import get_supabase
 
 
 class AlmoxRepository:
-    # Acesso nas tabelas do supabase
+    """
+    Acesso centralizado às tabelas, visões e RPCs do Supabase.
+    """
 
     def __init__(self) -> None:
         self.client = get_supabase()
@@ -35,6 +37,17 @@ class AlmoxRepository:
             "O Supabase não retornou o resultado da importação.",
         )
 
+    def email_ja_importado(self, hash_arquivo: str) -> dict[str, Any] | None:
+        response = (
+            self.client.table("importacoes_email")
+            .select("id,nome_arquivo,assunto,importado_em,importado_por")
+            .eq("hash_arquivo", hash_arquivo)
+            .limit(1)
+            .execute()
+        )
+        dados = response.data or []
+        return dados[0] if dados else None
+
     def listar_pendencias_est(self) -> list[dict[str, Any]]:
         response = (
             self.client.table("vw_pendencias_est_operador")
@@ -57,7 +70,6 @@ class AlmoxRepository:
             quantidade,
             "Quantidade entregue inválida.",
         )
-
         response = self.client.rpc(
             "registrar_entrega",
             {
@@ -67,7 +79,6 @@ class AlmoxRepository:
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
-
         return self._obter_resultado_rpc(
             response.data,
             "O Supabase não retornou o resultado do apontamento.",
@@ -79,11 +90,8 @@ class AlmoxRepository:
     ) -> dict[str, Any]:
         response = self.client.rpc(
             "consultar_material_fabrica",
-            {
-                "p_item_requisicao_id": item_requisicao_id,
-            },
+            {"p_item_requisicao_id": item_requisicao_id},
         ).execute()
-
         return self._obter_resultado_rpc(
             response.data,
             "O Supabase não retornou o saldo em fábrica.",
@@ -100,7 +108,6 @@ class AlmoxRepository:
             quantidade_fabrica,
             "Quantidade da fábrica inválida.",
         )
-
         response = self.client.rpc(
             "registrar_entrega_material_fabrica",
             {
@@ -110,7 +117,6 @@ class AlmoxRepository:
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
-
         return self._obter_resultado_rpc(
             response.data,
             "O Supabase não retornou o resultado da entrega pela fábrica.",
@@ -127,7 +133,6 @@ class AlmoxRepository:
             quantidade_nova,
             "Quantidade de material novo inválida.",
         )
-
         response = self.client.rpc(
             "registrar_entrega_mista",
             {
@@ -137,7 +142,6 @@ class AlmoxRepository:
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
-
         return self._obter_resultado_rpc(
             response.data,
             "O Supabase não retornou o resultado da entrega mista.",
@@ -166,7 +170,6 @@ class AlmoxRepository:
             nova_quantidade,
             "Nova quantidade inválida.",
         )
-
         response = self.client.rpc(
             "ajustar_material_fabrica",
             {
@@ -176,7 +179,6 @@ class AlmoxRepository:
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
-
         return self._obter_resultado_rpc(
             response.data,
             "O Supabase não retornou o resultado do ajuste.",
@@ -216,7 +218,6 @@ class AlmoxRepository:
             quantidade,
             "Quantidade devolvida inválida.",
         )
-
         response = self.client.rpc(
             "devolver_material",
             {
@@ -226,7 +227,6 @@ class AlmoxRepository:
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
-
         return self._obter_resultado_rpc(
             response.data,
             "O Supabase não retornou o resultado da devolução.",

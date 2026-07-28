@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from functools import lru_cache
 
@@ -7,9 +9,9 @@ from supabase import Client, create_client
 from config.settings import BASE_PATH
 
 
-# Conexão com o banco de dados
 @lru_cache(maxsize=1)
 def get_supabase() -> Client:
+    """Cria e reutiliza o cliente Supabase configurado no arquivo .env externo."""
     env_path = BASE_PATH / ".env"
     load_dotenv(dotenv_path=env_path, override=False)
 
@@ -20,8 +22,6 @@ def get_supabase() -> Client:
     )
 
     if not url or not key:
-        raise RuntimeError(
-            "Supabase não configurado"
-        )
+        raise RuntimeError("Supabase não configurado")
 
     return create_client(url, key)
