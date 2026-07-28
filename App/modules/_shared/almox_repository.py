@@ -7,8 +7,10 @@ from modules._shared.supabase_client import get_supabase
 
 
 class AlmoxRepository:
-    """
-    Acesso centralizado às tabelas, visões e RPCs do Supabase.
+    """Acesso centralizado às tabelas, visões e RPCs do Supabase.
+
+    Este arquivo fica na pasta externa ``modules/_shared``. Assim, alterações
+    futuras no repositório não exigem recompilar o executável-base.
     """
 
     def __init__(self) -> None:
@@ -242,6 +244,80 @@ class AlmoxRepository:
             .execute()
         )
         return response.data or []
+
+    def listar_lancamentos_totvs_pendentes(self) -> list[dict[str, Any]]:
+        response = (
+            self.client.table("vw_lancamentos_totvs_pendentes")
+            .select("*")
+            .order("recebido_em_email", desc=False)
+            .order("item_resumo_totvs_id", desc=False)
+            .limit(5000)
+            .execute()
+        )
+        return response.data or []
+
+    def marcar_baixa_administrativa_totvs(
+        self,
+        item_resumo_ids: list[int],
+        nome_responsavel: str,
+    ) -> dict[str, Any]:
+        ids = sorted({int(item_id) for item_id in item_resumo_ids})
+        if not ids:
+            raise ValueError("Selecione ao menos uma linha para baixar.")
+
+        responsavel = nome_responsavel.strip()
+        if not responsavel:
+            raise ValueError("Informe quem está realizando a baixa.")
+
+        response = self.client.rpc(
+            "marcar_baixa_administrativa_totvs",
+            {
+                "p_item_resumo_ids": ids,
+                "p_baixado_por": responsavel,
+            },
+        ).execute()
+
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da baixa administrativa.",
+        )
+
+    def listar_baixas_administrativas_totvs(self) -> list[dict[str, Any]]:
+        response = (
+            self.client.table("vw_baixas_administrativas_totvs")
+            .select("*")
+            .order("baixado_em", desc=True)
+            .order("baixa_administrativa_id", desc=True)
+            .limit(5000)
+            .execute()
+        )
+        return response.data or []
+
+    def estornar_baixa_administrativa_totvs(
+        self,
+        baixa_ids: list[int],
+        nome_responsavel: str,
+    ) -> dict[str, Any]:
+        ids = sorted({int(baixa_id) for baixa_id in baixa_ids})
+        if not ids:
+            raise ValueError("Selecione ao menos uma baixa para estornar.")
+
+        responsavel = nome_responsavel.strip()
+        if not responsavel:
+            raise ValueError("Informe quem está realizando o estorno.")
+
+        response = self.client.rpc(
+            "estornar_baixa_administrativa_totvs",
+            {
+                "p_baixa_ids": ids,
+                "p_estornado_por": responsavel,
+            },
+        ).execute()
+
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado do estorno administrativo.",
+        )
 
     @staticmethod
     def _normalizar_quantidade(
