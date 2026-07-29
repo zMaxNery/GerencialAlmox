@@ -610,9 +610,8 @@ class EntregasEstView(ctk.CTkFrame):
 
         self.selected_label.configure(
             text=(
-                f"{row.get('material', '')} | {row.get('dimensao', '')}\n"
-                f"Rastreabilidade: {row.get('rastreabilidade', '')}\n"
-                f"Falta: {self._fmt(row.get('quantidade_restante'))}"
+                f"{row.get('material', '')} | {row.get('rastreabilidade', '')}\n"
+                f"Falta entregar: {self._fmt(row.get('quantidade_restante'))}"
             )
         )
         self.quantidade_var.set("")

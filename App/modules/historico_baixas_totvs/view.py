@@ -52,18 +52,9 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
 
         ctk.CTkLabel(
             title_box,
-            text="Baixas administrativas do TOTVS",
+            text="Histórico de baixas TOTVS",
             font=ctk.CTkFont(size=25, weight="bold"),
         ).pack(anchor="w")
-
-        ctk.CTkLabel(
-            title_box,
-            text=(
-                "O estorno devolve as linhas para a tela de lançamentos e "
-                "libera novamente possíveis devoluções do operador."
-            ),
-            text_color=("gray35", "gray70"),
-        ).pack(anchor="w", pady=(3, 0))
 
         ctk.CTkButton(
             header,
@@ -117,12 +108,12 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
         style = ttk.Style()
         style.configure(
             "HistoricoBaixasTotvs.Treeview",
-            font=("Arial", 11),
-            rowheight=34,
+            font=("Arial", 12),
+            rowheight=36,
         )
         style.configure(
             "HistoricoBaixasTotvs.Treeview.Heading",
-            font=("Arial", 12, "bold"),
+            font=("Arial", 14, "bold"),
         )
 
         self.tree = ttk.Treeview(
@@ -149,20 +140,20 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
             "material": "Material",
             "peso": "Peso (KG)",
             "baixado_por": "Quem baixou",
-            "baixado_em": "Data/Hora Baixa",
-            "entregue_em": "Data/Hora Entrega",
-            "requisitado_em": "Data/Hora Requisição",
+            "baixado_em": "Dt/Hr Baixa",
+            "entregue_em": "Dt/Hr Entrega",
+            "requisitado_em": "Dt/Hr Requisição",
             "operador": "Operador",
         }
         widths = {
             "tipo": 70,
             "requisicao": 125,
             "material": 250,
-            "peso": 105,
+            "peso": 120,
             "baixado_por": 180,
             "baixado_em": 170,
             "entregue_em": 170,
-            "requisitado_em": 170,
+            "requisitado_em": 190,
             "operador": 220,
         }
 
@@ -236,7 +227,7 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
             command=self._clear_selection,
         ).grid(row=1, column=3, sticky="w", padx=(0, 12), pady=(4, 10))
 
-        ctk.CTkLabel(footer, text="Quem está estornando:").grid(
+        ctk.CTkLabel(footer, text="Usuário:").grid(
             row=1, column=4, padx=(10, 5), pady=(4, 10)
         )
 
@@ -339,7 +330,7 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
         if not admin_name:
             messagebox.showinfo(
                 "Baixas TOTVS",
-                "Informe quem está realizando o estorno.",
+                "Informe seu usuário.",
             )
             return
 

@@ -56,15 +56,6 @@ class LancamentosTotvsView(ctk.CTkFrame):
             font=ctk.CTkFont(size=25, weight="bold"),
         ).pack(anchor="w")
 
-        ctk.CTkLabel(
-            title_box,
-            text=(
-                "FAB aparece imediatamente. EST aparece somente após a entrega "
-                "completa do material pelos operadores."
-            ),
-            text_color=("gray35", "gray70"),
-        ).pack(anchor="w", pady=(3, 0))
-
         ctk.CTkButton(
             header,
             text="Atualizar",
@@ -117,12 +108,12 @@ class LancamentosTotvsView(ctk.CTkFrame):
         style = ttk.Style()
         style.configure(
             "LancamentosTotvs.Treeview",
-            font=("Arial", 11),
-            rowheight=34,
+            font=("Arial", 12),
+            rowheight=36,
         )
         style.configure(
             "LancamentosTotvs.Treeview.Heading",
-            font=("Arial", 12, "bold"),
+            font=("Arial", 14, "bold"),
         )
 
         self.tree = ttk.Treeview(
@@ -150,8 +141,8 @@ class LancamentosTotvsView(ctk.CTkFrame):
             "os_so": "OS-SO",
             "of": "OF",
             "peso": "Peso (KG)",
-            "requisitado_em": "Data/Hora Requisição",
-            "entregue_em": "Data/Hora Entrega",
+            "requisitado_em": "Dt/Hr Requisição",
+            "entregue_em": "Dt/Hr Entrega",
             "operador": "Operador",
         }
         widths = {
@@ -160,8 +151,8 @@ class LancamentosTotvsView(ctk.CTkFrame):
             "material": 250,
             "os_so": 125,
             "of": 110,
-            "peso": 105,
-            "requisitado_em": 170,
+            "peso": 120,
+            "requisitado_em": 190,
             "entregue_em": 170,
             "operador": 220,
         }
@@ -235,7 +226,7 @@ class LancamentosTotvsView(ctk.CTkFrame):
             command=self._clear_selection,
         ).grid(row=1, column=3, sticky="w", padx=(0, 12), pady=(4, 10))
 
-        ctk.CTkLabel(footer, text="Quem está baixando:").grid(
+        ctk.CTkLabel(footer, text="Usuário:").grid(
             row=1, column=4, padx=(10, 5), pady=(4, 10)
         )
 
@@ -336,7 +327,7 @@ class LancamentosTotvsView(ctk.CTkFrame):
         if not admin_name:
             messagebox.showinfo(
                 "Lançamentos TOTVS",
-                "Informe quem está realizando a baixa.",
+                "Informe seu usuário.",
             )
             return
 
@@ -350,10 +341,9 @@ class LancamentosTotvsView(ctk.CTkFrame):
             return
 
         question = (
-            f"Confirmar a baixa de {len(selected_rows)} linha(s)?\n\n"
-            "Após a baixa, materiais EST relacionados não poderão ser devolvidos "
-            "pelos operadores até que a baixa seja estornada."
+            f"Confirmar a baixa de {len(selected_rows)} linha(s) selecionadas?\n\n"
         )
+
         if not messagebox.askyesno("Confirmar baixa", question):
             return
 

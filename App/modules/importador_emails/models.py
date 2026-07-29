@@ -25,7 +25,7 @@ class ItemRequisicao:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "local_estoque": self.local_estoque,
+            "tipo_requisicao": self.local_estoque,
             "tipo_material": self.tipo_material,
             "material": self.material,
             "dimensao": self.dimensao,
@@ -33,8 +33,8 @@ class ItemRequisicao:
             "rastreabilidade": self.rastreabilidade,
             "data_requisicao": self.data_requisicao,
             "maquina": self.maquina,
-            "localizacao": self.localizacao,
-            "setor": self.setor,
+            "localizacao_est": self.localizacao,
+            "setor_dest": self.setor,
             "peso_material_kg": float(self.peso_material_kg),
             "peso_requisitado_kg": float(self.peso_requisitado_kg),
             "indice_tabela_origem": self.indice_tabela_origem,
@@ -56,7 +56,7 @@ class ItemResumoTotvs:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "local_estoque": self.local_estoque,
+            "tipo_requisicao": self.local_estoque,
             "tipo_material": self.tipo_material,
             "numero_requisicao": self.numero_requisicao,
             "material": self.material,

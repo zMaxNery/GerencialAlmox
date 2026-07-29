@@ -459,7 +459,7 @@ class JanelaDevolucao(ctk.CTkToplevel):
             or "0"
         )
     
-class VisaoAdministrativaView(ctk.CTkFrame):
+class ResumoEntregasView(ctk.CTkFrame):
     COLUMNS = (
         "data_requisicao",
         "hora_requisicao",

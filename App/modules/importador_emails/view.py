@@ -419,8 +419,8 @@ class ImportadorEmailsView(ctk.CTkFrame):
             if parsed:
                 values = (
                     record["path"].name,
-                    parsed.local_estoque,
-                    parsed.tipo_movimento,
+                    parsed.tipo_requisicao,
+                    parsed.tipo_material,
                     len(parsed.itens_requisicao),
                     len(parsed.itens_resumo),
                     f"{parsed.peso_detalhes:.3f}",
