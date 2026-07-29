@@ -11,7 +11,7 @@ from modules._shared.almox_repository import AlmoxRepository
 
 
 class LancamentosTotvsView(ctk.CTkFrame):
-    """Requisições aptas para lançamento administrativo no TOTVS."""
+    """Requisições aptas para lançamento no TOTVS."""
 
     COLUMNS = (
         "tipo",
@@ -358,7 +358,7 @@ class LancamentosTotvsView(ctk.CTkFrame):
             return
 
         try:
-            result = self.repository.marcar_baixa_administrativa_totvs(
+            result = self.repository.marcar_baixas_resumo_totvs(
                 item_resumo_ids=[
                     int(row["item_resumo_totvs_id"])
                     for row in selected_rows

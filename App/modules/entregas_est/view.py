@@ -491,7 +491,7 @@ class EntregasEstView(ctk.CTkFrame):
 
     def _update_filter_options(self) -> None:
         setores = self._unique_values("setor_dest")
-        estoques = self._unique_values("localizacao_est")
+        estoques = self._unique_values("local_estoque")
         datas = sorted(
             {
                 self._fmt_date(row.get("data_requisicao"))
@@ -538,7 +538,7 @@ class EntregasEstView(ctk.CTkFrame):
 
             if (
                 estoque != "TODOS"
-                and str(row.get("localizacao_est") or "") != estoque
+                and str(row.get("local_estoque") or "") != estoque
             ):
                 continue
 
@@ -583,7 +583,7 @@ class EntregasEstView(ctk.CTkFrame):
                     self._fmt(row.get("quantidade_restante")),
                     row.get("rastreabilidade") or "",
                     row.get("setor_dest") or "",
-                    row.get("localizacao_est") or "",
+                    row.get("local_estoque") or "",
                 ),
                 tags=(tag_linha,),
             )
@@ -762,7 +762,7 @@ class EntregasEstView(ctk.CTkFrame):
                 item=row,
                 consulta=consulta,
                 quantidade_informada=quantidade,
-                usuario=usuario,
+                nome_operador=usuario,
                 observacao=self.note_entry.get().strip() or None,
                 on_success=self._apos_registro,
             )
@@ -784,7 +784,7 @@ class EntregasEstView(ctk.CTkFrame):
             result = self.repository.registrar_entrega(
                 item_requisicao_id=int(row["item_requisicao_id"]),
                 quantidade=quantidade,
-                usuario=usuario,
+                nome_operador=usuario,
                 observacao=self.note_entry.get().strip() or None,
             )
         except Exception as exc:

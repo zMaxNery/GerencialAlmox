@@ -263,7 +263,7 @@ class JanelaAjusteMaterialFabrica(ctk.CTkToplevel):
                     self.row["lote_material_fabrica_id"]
                 ),
                 nova_quantidade=nova_quantidade,
-                usuario=operador,
+                nome_operador=operador,
                 observacao=observacao,
             )
         except Exception as exc:

@@ -14,7 +14,13 @@ class AlmoxRepository:
         self.client = get_supabase()
 
     def testar_conexao(self) -> None:
-        self.client.table("emails_importados").select("id").limit(1).execute()
+        (
+            self.client
+            .table("vw_progresso_requisicoes")
+            .select("item_requisicao_id")
+            .limit(1)
+            .execute()
+        )
 
     def importar_email(
         self,
@@ -35,17 +41,6 @@ class AlmoxRepository:
             response.data,
             "O Supabase não retornou o resultado da importação.",
         )
-
-    def email_ja_importado(self, hash_arquivo: str) -> dict[str, Any] | None:
-        response = (
-            self.client.table("emails_importados")
-            .select("id,nome_arquivo,assunto,importado_em,importado_por")
-            .eq("hash_arquivo", hash_arquivo)
-            .limit(1)
-            .execute()
-        )
-        dados = response.data or []
-        return dados[0] if dados else None
 
     def listar_pendencias_est(self) -> list[dict[str, Any]]:
         response = (

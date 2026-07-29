@@ -5,6 +5,7 @@ powershell -ExecutionPolicy Bypass -File .\compilador.ps1
 begin;
 
 truncate table
+    public.baixas_resumo_totvs,
     public.ajustes_materiais_fabrica,
     public.consumos_materiais_fabrica,
     public.devolucoes_entrega,
@@ -12,7 +13,7 @@ truncate table
     public.apontamentos_entrega,
     public.itens_resumo_totvs,
     public.itens_requisicao,
-    public.importacoes_email
+    public.emails_importados
 restart identity;
 
 commit;

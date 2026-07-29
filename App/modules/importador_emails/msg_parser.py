@@ -142,8 +142,8 @@ class MsgParser:
             assunto=assunto,
             remetente=remetente,
             recebido_em=recebido_em,
-            local_estoque=local_estoque,
-            tipo_movimento=tipo_movimento,
+            tipo_requisicao=local_estoque,
+            tipo_material=tipo_movimento,
             itens_requisicao=itens_requisicao,
             itens_resumo=itens_resumo,
         )

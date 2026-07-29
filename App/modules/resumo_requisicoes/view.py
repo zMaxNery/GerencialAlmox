@@ -406,7 +406,7 @@ class JanelaDevolucao(ctk.CTkToplevel):
                     self.row["apontamento_entrega_id"]
                 ),
                 quantidade=quantidade,
-                usuario=getpass.getuser(),
+                nome_operador=getpass.getuser(),
                 observacao=observacao,
             )
 
@@ -853,7 +853,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             self.repository.devolver_material(
                 apontamento_entrega_id=int(row["apontamento_entrega_id"]),
                 quantidade=quantidade,
-                usuario=getpass.getuser(),
+                nome_operador=getpass.getuser(),
                 observacao=observacao,
             )
 
