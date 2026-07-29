@@ -8,16 +8,16 @@ from typing import Any
 
 @dataclass(slots=True)
 class ItemRequisicao:
+    tipo_requisicao: str
     tipo_material: str
-    local_estoque: str
     material: str
     dimensao: str
     quantidade: Decimal
     rastreabilidade: str
     data_requisicao: str | None
     maquina: str
-    localizacao: str
-    setor: str
+    localizacao_est: str
+    setor_dest: str
     peso_material_kg: Decimal
     peso_requisitado_kg: Decimal
     indice_tabela_origem: int
@@ -25,16 +25,16 @@ class ItemRequisicao:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "tipo_requisicao": self.tipo_requisicao,
             "tipo_material": self.tipo_material,
-            "local_estoque": self.local_estoque,
             "material": self.material,
             "dimensao": self.dimensao,
             "quantidade": float(self.quantidade),
             "rastreabilidade": self.rastreabilidade,
             "data_requisicao": self.data_requisicao,
             "maquina": self.maquina,
-            "localizacao": self.localizacao,
-            "setor": self.setor,
+            "localizacao_est": self.localizacao_est,
+            "setor_dest": self.setor_dest,
             "peso_material_kg": float(self.peso_material_kg),
             "peso_requisitado_kg": float(self.peso_requisitado_kg),
             "indice_tabela_origem": self.indice_tabela_origem,
@@ -43,8 +43,8 @@ class ItemRequisicao:
 
 @dataclass(slots=True)
 class ItemResumoTotvs:
+    tipo_requisicao: str
     tipo_material: str
-    local_estoque: str
     numero_requisicao: str
     material: str
     os_so: str
@@ -56,8 +56,8 @@ class ItemResumoTotvs:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "tipo_requisicao": self.tipo_requisicao,
             "tipo_material": self.tipo_material,
-            "local_estoque": self.local_estoque,
             "numero_requisicao": self.numero_requisicao,
             "material": self.material,
             "os_so": self.os_so,
@@ -75,7 +75,7 @@ class EmailProcessado:
     assunto: str
     remetente: str
     recebido_em: str | None
-    local_estoque: str
+    tipo_material: str
     tipo_movimento: str
     itens_requisicao: list[ItemRequisicao] = field(default_factory=list)
     itens_resumo: list[ItemResumoTotvs] = field(default_factory=list)
@@ -105,7 +105,7 @@ class EmailProcessado:
             "assunto": self.assunto,
             "remetente": self.remetente,
             "recebido_em": self.recebido_em,
-            "local_estoque": self.local_estoque,
+            "tipo_material": self.tipo_material,
             "tipo_movimento": self.tipo_movimento,
             "importado_por": importado_por,
         }

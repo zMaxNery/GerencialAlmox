@@ -303,7 +303,7 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
             self.tree.delete(item_id)
 
         for index, row in enumerate(data):
-            item_id = str(row["baixa_administrativa_id"])
+            item_id = str(row["baixa_resumo_totvs_id"])
             self.rows[item_id] = row
 
             self.tree.insert(
@@ -363,7 +363,7 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
         try:
             result = self.repository.estornar_baixa_administrativa_totvs(
                 baixa_ids=[
-                    int(row["baixa_administrativa_id"])
+                    int(row["baixa_resumo_totvs_id"])
                     for row in selected_rows
                 ],
                 nome_responsavel=admin_name,

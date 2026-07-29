@@ -263,7 +263,7 @@ class JanelaAjusteMaterialFabrica(ctk.CTkToplevel):
                     self.row["lote_material_fabrica_id"]
                 ),
                 nova_quantidade=nova_quantidade,
-                nome_operador=operador,
+                usuario=operador,
                 observacao=observacao,
             )
         except Exception as exc:
@@ -635,7 +635,7 @@ class MateriaisFabricaView(ctk.CTkFrame):
                 continue
 
             if operador and operador not in str(
-                row.get("nome_operador") or ""
+                row.get("usuario") or ""
             ).lower():
                 continue
 
@@ -664,7 +664,7 @@ class MateriaisFabricaView(ctk.CTkFrame):
                     row.get("material") or "",
                     row.get("rastreabilidade") or "",
                     self._fmt(row.get("quantidade_disponivel")),
-                    row.get("nome_operador") or "",
+                    row.get("usuario") or "",
                 ),
                 tags=(tag,),
             )

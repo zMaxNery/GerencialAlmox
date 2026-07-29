@@ -406,7 +406,7 @@ class JanelaDevolucao(ctk.CTkToplevel):
                     self.row["apontamento_entrega_id"]
                 ),
                 quantidade=quantidade,
-                nome_operador=getpass.getuser(),
+                usuario=getpass.getuser(),
                 observacao=observacao,
             )
 
@@ -472,7 +472,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         "excedente",
         "rastreabilidade",
         "estoque",
-        "setor",
+        "setor_dest",
         "observacao",
         "operador",
     )
@@ -634,7 +634,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             "excedente": "Excedente",
             "rastreabilidade": "Rastreabilidade",
             "estoque": "Estoque",
-            "setor": "Setor",
+            "setor_dest": "Setor",
             "observacao": "Observação",
             "operador": "Operador",
         }
@@ -650,7 +650,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             "excedente": 120,
             "rastreabilidade": 180,
             "estoque": 110,
-            "setor": 110,
+            "setor_dest": 110,
             "observacao": 200,
             "operador": 150,
         }
@@ -729,8 +729,8 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         self._apply_filters()
 
     def _update_filter_options(self) -> None:
-        setores = self._unique_values("setor")
-        estoques = self._unique_values("localizacao")
+        setores = self._unique_values("setor_dest")
+        estoques = self._unique_values("localizacao_est")
         datas = sorted(
             {
                 self._fmt_data(row.get("entregue_em"))
@@ -756,7 +756,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
         filtrados: list[dict] = []
 
         for row in self.all_rows:
-            if setor != "TODOS" and str(row.get("setor") or "") != setor:
+            if setor != "TODOS" and str(row.get("setor_dest") or "") != setor:
                 continue
 
             if (
@@ -765,7 +765,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             ):
                 continue
 
-            if estoque != "TODOS" and str(row.get("localizacao") or "") != estoque:
+            if estoque != "TODOS" and str(row.get("localizacao_est") or "") != estoque:
                 continue
 
             if material and material not in str(row.get("material") or "").lower():
@@ -808,10 +808,10 @@ class VisaoAdministrativaView(ctk.CTkFrame):
                     self._fmt(row.get("quantidade_entregue")),
                     self._fmt(row.get("quantidade_excedente")),
                     row.get("rastreabilidade") or "",
-                    row.get("localizacao") or "",
-                    row.get("setor") or "",
+                    row.get("localizacao_est") or "",
+                    row.get("setor_dest") or "",
                     row.get("observacao") or "",
-                    row.get("nome_operador") or "",
+                    row.get("usuario") or "",
                 ),
                 tags=(tag,),
             )
@@ -853,7 +853,7 @@ class VisaoAdministrativaView(ctk.CTkFrame):
             self.repository.devolver_material(
                 apontamento_entrega_id=int(row["apontamento_entrega_id"]),
                 quantidade=quantidade,
-                nome_operador=getpass.getuser(),
+                usuario=getpass.getuser(),
                 observacao=observacao,
             )
 

@@ -23,7 +23,7 @@ class AlmoxRepository:
         itens_resumo: list[dict[str, Any]],
     ) -> dict[str, Any]:
         response = self.client.rpc(
-            "emails_importados",
+            "importar_email",
             {
                 "p_email": email_payload,
                 "p_itens_requisicao": itens_requisicao,
@@ -38,7 +38,7 @@ class AlmoxRepository:
 
     def email_ja_importado(self, hash_arquivo: str) -> dict[str, Any] | None:
         response = (
-            self.client.table("importacoes_email")
+            self.client.table("emails_importados")
             .select("id,nome_arquivo,assunto,importado_em,importado_por")
             .eq("hash_arquivo", hash_arquivo)
             .limit(1)
@@ -74,7 +74,7 @@ class AlmoxRepository:
             {
                 "p_item_requisicao_id": item_requisicao_id,
                 "p_quantidade": float(quantidade_normalizada),
-                "p_nome_operador": nome_operador.strip(),
+                "p_usuario": nome_operador.strip(),
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
@@ -112,7 +112,7 @@ class AlmoxRepository:
             {
                 "p_item_requisicao_id": item_requisicao_id,
                 "p_quantidade_fabrica": float(quantidade_normalizada),
-                "p_nome_operador": nome_operador.strip(),
+                "p_usuario": nome_operador.strip(),
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
@@ -137,7 +137,7 @@ class AlmoxRepository:
             {
                 "p_item_requisicao_id": item_requisicao_id,
                 "p_quantidade_nova": float(quantidade_normalizada),
-                "p_nome_operador": nome_operador.strip(),
+                "p_usuario": nome_operador.strip(),
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
@@ -174,7 +174,7 @@ class AlmoxRepository:
             {
                 "p_lote_material_fabrica_id": lote_material_fabrica_id,
                 "p_nova_quantidade": float(quantidade_normalizada),
-                "p_nome_operador": nome_operador.strip(),
+                "p_usuario": nome_operador.strip(),
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
@@ -182,17 +182,6 @@ class AlmoxRepository:
             response.data,
             "O Supabase não retornou o resultado do ajuste.",
         )
-
-    def listar_requisicoes_baixa(self) -> list[dict[str, Any]]:
-        response = (
-            self.client.table("vw_requisicoes_administrativo")
-            .select("*")
-            .order("data_requisicao", desc=True)
-            .order("item_requisicao_id", desc=True)
-            .limit(3000)
-            .execute()
-        )
-        return response.data or []
 
     def listar_historico_entregas(self) -> list[dict[str, Any]]:
         response = (
@@ -222,7 +211,7 @@ class AlmoxRepository:
             {
                 "p_apontamento_entrega_id": apontamento_entrega_id,
                 "p_quantidade": float(quantidade_normalizada),
-                "p_nome_operador": nome_operador.strip(),
+                "p_usuario": nome_operador.strip(),
                 "p_observacao": observacao.strip() if observacao else None,
             },
         ).execute()
@@ -253,7 +242,7 @@ class AlmoxRepository:
         )
         return response.data or []
 
-    def marcar_baixa_administrativa_totvs(
+    def marcar_baixas_resumo_totvs(
         self,
         item_resumo_ids: list[int],
         nome_responsavel: str,
@@ -267,7 +256,7 @@ class AlmoxRepository:
             raise ValueError("Informe quem está realizando a baixa.")
 
         response = self.client.rpc(
-            "marcar_baixa_administrativa_totvs",
+            "marcar_baixas_resumo_totvs",
             {
                 "p_item_resumo_ids": ids,
                 "p_baixado_por": responsavel,
@@ -281,10 +270,10 @@ class AlmoxRepository:
 
     def listar_baixas_administrativas_totvs(self) -> list[dict[str, Any]]:
         response = (
-            self.client.table("vw_baixas_administrativas_totvs")
+            self.client.table("vw_baixas_resumo_totvs")
             .select("*")
             .order("baixado_em", desc=True)
-            .order("baixa_administrativa_id", desc=True)
+            .order("baixa_resumo_totvs_id", desc=True)
             .limit(5000)
             .execute()
         )

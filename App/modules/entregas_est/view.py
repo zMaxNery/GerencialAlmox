@@ -21,7 +21,7 @@ class EntregasEstView(ctk.CTkFrame):
         "entregue",
         "falta",
         "rastreabilidade",
-        "setor",
+        "setor_dest",
         "estoque",
     )
 
@@ -406,7 +406,7 @@ class EntregasEstView(ctk.CTkFrame):
             "entregue": "Entregue",
             "falta": "Falta",
             "rastreabilidade": "Rastreabilidade",
-            "setor": "Setor",
+            "setor_dest": "Setor",
             "estoque": "Estoque",
         }
         widths = {
@@ -418,7 +418,7 @@ class EntregasEstView(ctk.CTkFrame):
             "entregue": 110,
             "falta": 70,
             "rastreabilidade": 180,
-            "setor": 110,
+            "setor_dest": 110,
             "estoque": 110,
         }
 
@@ -490,8 +490,8 @@ class EntregasEstView(ctk.CTkFrame):
         self._apply_filters()
 
     def _update_filter_options(self) -> None:
-        setores = self._unique_values("setor")
-        estoques = self._unique_values("localizacao")
+        setores = self._unique_values("setor_dest")
+        estoques = self._unique_values("localizacao_est")
         datas = sorted(
             {
                 self._fmt_date(row.get("data_requisicao"))
@@ -527,7 +527,7 @@ class EntregasEstView(ctk.CTkFrame):
         filtered: list[dict] = []
 
         for row in self.all_rows:
-            if setor != "TODOS" and str(row.get("setor") or "") != setor:
+            if setor != "TODOS" and str(row.get("setor_dest") or "") != setor:
                 continue
 
             if (
@@ -538,7 +538,7 @@ class EntregasEstView(ctk.CTkFrame):
 
             if (
                 estoque != "TODOS"
-                and str(row.get("localizacao") or "") != estoque
+                and str(row.get("localizacao_est") or "") != estoque
             ):
                 continue
 
@@ -582,8 +582,8 @@ class EntregasEstView(ctk.CTkFrame):
                     self._fmt(row.get("quantidade_entregue")),
                     self._fmt(row.get("quantidade_restante")),
                     row.get("rastreabilidade") or "",
-                    row.get("setor") or "",
-                    row.get("localizacao") or "",
+                    row.get("setor_dest") or "",
+                    row.get("localizacao_est") or "",
                 ),
                 tags=(tag_linha,),
             )
@@ -717,8 +717,8 @@ class EntregasEstView(ctk.CTkFrame):
             )
             return
 
-        nome_operador = self.operator_entry.get().strip()
-        if not nome_operador:
+        usuario = self.operator_entry.get().strip()
+        if not usuario:
             messagebox.showinfo(
                 "Entrega de MP",
                 "Informe o nome do operador.",
@@ -762,7 +762,7 @@ class EntregasEstView(ctk.CTkFrame):
                 item=row,
                 consulta=consulta,
                 quantidade_informada=quantidade,
-                nome_operador=nome_operador,
+                usuario=usuario,
                 observacao=self.note_entry.get().strip() or None,
                 on_success=self._apos_registro,
             )
@@ -771,20 +771,20 @@ class EntregasEstView(ctk.CTkFrame):
         self._registrar_entrega_direta(
             row=row,
             quantidade=quantidade,
-            nome_operador=nome_operador,
+            usuario=usuario,
         )
 
     def _registrar_entrega_direta(
         self,
         row: dict,
         quantidade: Decimal,
-        nome_operador: str,
+        usuario: str,
     ) -> None:
         try:
             result = self.repository.registrar_entrega(
                 item_requisicao_id=int(row["item_requisicao_id"]),
                 quantidade=quantidade,
-                nome_operador=nome_operador,
+                usuario=usuario,
                 observacao=self.note_entry.get().strip() or None,
             )
         except Exception as exc:
