@@ -7,17 +7,14 @@ from modules._shared.supabase_client import get_supabase
 
 
 class AlmoxRepository:
-    """Acesso centralizado às tabelas, visões e RPCs do Supabase.
-
-    Este arquivo fica na pasta externa ``modules/_shared``. Assim, alterações
-    futuras no repositório não exigem recompilar o executável-base.
-    """
-
+    '''
+    Acesso centralizado às tabelas, visões e RPCs do Supabase.
+    '''
     def __init__(self) -> None:
         self.client = get_supabase()
 
     def testar_conexao(self) -> None:
-        self.client.table("importacoes_email").select("id").limit(1).execute()
+        self.client.table("emails_importados").select("id").limit(1).execute()
 
     def importar_email(
         self,
@@ -26,7 +23,7 @@ class AlmoxRepository:
         itens_resumo: list[dict[str, Any]],
     ) -> dict[str, Any]:
         response = self.client.rpc(
-            "importar_email",
+            "emails_importados",
             {
                 "p_email": email_payload,
                 "p_itens_requisicao": itens_requisicao,
@@ -186,7 +183,7 @@ class AlmoxRepository:
             "O Supabase não retornou o resultado do ajuste.",
         )
 
-    def listar_visao_administrativa(self) -> list[dict[str, Any]]:
+    def listar_requisicoes_baixa(self) -> list[dict[str, Any]]:
         response = (
             self.client.table("vw_requisicoes_administrativo")
             .select("*")
@@ -307,7 +304,7 @@ class AlmoxRepository:
             raise ValueError("Informe quem está realizando o estorno.")
 
         response = self.client.rpc(
-            "estornar_baixa_administrativa_totvs",
+            "estornar_baixa_resumo_totvs",
             {
                 "p_baixa_ids": ids,
                 "p_estornado_por": responsavel,

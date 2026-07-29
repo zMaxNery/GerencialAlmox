@@ -11,7 +11,9 @@ from config.settings import BASE_PATH
 
 @lru_cache(maxsize=1)
 def get_supabase() -> Client:
-    """Cria e reutiliza o cliente Supabase configurado no arquivo .env externo."""
+    '''
+    Configuração do Supabase.
+    '''
     env_path = BASE_PATH / ".env"
     load_dotenv(dotenv_path=env_path, override=False)
 
