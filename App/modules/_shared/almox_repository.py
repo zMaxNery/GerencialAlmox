@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from modules._shared.supabase_client import get_supabase
+from core.supabase_client import get_supabase
 
 
 class AlmoxRepository:

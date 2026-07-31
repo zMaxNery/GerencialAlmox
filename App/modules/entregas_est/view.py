@@ -491,7 +491,7 @@ class EntregasEstView(ctk.CTkFrame):
 
     def _update_filter_options(self) -> None:
         setores = self._unique_values("setor_dest")
-        estoques = self._unique_values("local_estoque")
+        estoques = self._unique_values("localizacao_est")
         datas = sorted(
             {
                 self._fmt_date(row.get("data_requisicao"))
@@ -538,7 +538,7 @@ class EntregasEstView(ctk.CTkFrame):
 
             if (
                 estoque != "TODOS"
-                and str(row.get("local_estoque") or "") != estoque
+                and str(row.get("localizacao_est") or "") != estoque
             ):
                 continue
 
@@ -583,7 +583,7 @@ class EntregasEstView(ctk.CTkFrame):
                     self._fmt(row.get("quantidade_restante")),
                     row.get("rastreabilidade") or "",
                     row.get("setor_dest") or "",
-                    row.get("local_estoque") or "",
+                    row.get("localizacao_est") or "",
                 ),
                 tags=(tag_linha,),
             )

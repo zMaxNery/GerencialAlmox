@@ -1,22 +1,34 @@
+from __future__ import annotations
+
 import customtkinter as ctk
+from tkinter import messagebox
 from tkinterdnd2 import TkinterDnD
 
+from core.access_service import AccessService
 from core.module_loader import ModuleLoader
+from core.user_context import UserContext
+from core.user_session import definir_usuario_atual
 
-'''
-Tela principal da aplicação
-'''
 class HomePage(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Start da lista de módulos encontrados
         self.botoes_modulos: list[ctk.CTkButton] = []
+        self.access_service: AccessService | None = None
+        self.usuario_atual: UserContext | None = None
+        self.erro_acesso: str | None = None
 
-        # Carrega o Drag-Drop
+        self._carregar_contexto_usuario()
+
+        tema_inicial = (
+            self.usuario_atual.tema
+            if self.usuario_atual is not None
+            else "Dark"
+        )
+        ctk.set_appearance_mode(tema_inicial)
+
         self.drag_drop_disponivel = False
         self.drag_drop_erro: str | None = None
-
         try:
             self.tkdnd_version = TkinterDnD.require(self)
             self.drag_drop_disponivel = True
@@ -24,91 +36,162 @@ class HomePage(ctk.CTk):
             self.drag_drop_erro = str(exc)
             print(f"Drag-and-drop indisponível: {exc}")
 
-        # Configurações gerais da tela
-        ctk.set_appearance_mode("Dark")
-        self.title("Teste")
-
-        # Abre com a janela já expandida
-        self.after(0, lambda: self.state('zoomed'))
-
-        # Configuração de Grid
+        self.title("Controles Almox")
+        self.after(0, lambda: self.state("zoomed"))
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
-        
-        '''
-        Carrega elementos da tela
-        '''
-        # Barra lateral
+
         self.barra_lateral()
-
-        # Construtor da tela principal
         self.tela_principal()
-
-        # Carrega os módulos na raiz do projeto
         self.carregar_menu_modulos()
+        self._mostrar_situacao_usuario()
 
-    '''
-    Configurações das janelas
-    Barra lateral e Tela Principal
-    '''
-    # Construtor da tela principal
+    def _carregar_contexto_usuario(self) -> None:
+        self.usuario_atual = None
+        self.erro_acesso = None
+
+        try:
+            self.access_service = AccessService()
+            self.usuario_atual = self.access_service.carregar_usuario_atual()
+        except Exception as exc:
+            self.erro_acesso = str(exc)
+            print(f"Erro ao carregar controle de acesso: {exc}")
+
+        definir_usuario_atual(self.usuario_atual)
+
     def tela_principal(self):
         self.conteudo_frame = ctk.CTkFrame(self, corner_radius=0)
-        self.conteudo_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        self.conteudo_frame.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=20,
+            pady=20,
+        )
         self.conteudo_frame.grid_columnconfigure(0, weight=1)
-        
-    # Constrói a barra lateral
-    def barra_lateral(self):
-        self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.conteudo_frame.grid_rowconfigure(0, weight=1)
 
-        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="Gerencial", font=ctk.CTkFont(size=20, weight="bold"))
+    def barra_lateral(self):
+        self.sidebar_frame = ctk.CTkFrame(self, width=230, corner_radius=0)
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid_columnconfigure(0, weight=1)
+        self.sidebar_frame.grid_rowconfigure(97, weight=1)
+
+        self.logo_label = ctk.CTkLabel(
+            self.sidebar_frame,
+            text="Controles Almox",
+            font=ctk.CTkFont(size=20, weight="bold"),
+        )
         self.logo_label.grid(row=0, column=0, padx=20, pady=20)
 
-        self.sidebar_frame.grid_rowconfigure(98, weight=1)
+        self.lbl_usuario = ctk.CTkLabel(
+            self.sidebar_frame,
+            text=self._texto_usuario_lateral(),
+            justify="left",
+            anchor="w",
+            wraplength=190,
+        )
+        self.lbl_usuario.grid(
+            row=98,
+            column=0,
+            padx=20,
+            pady=(10, 5),
+            sticky="ew",
+        )
 
-        self.btn_recarregar = ctk.CTkButton(self.sidebar_frame, text="Recarregar módulos", command=self.recarregar_modulos)
-        self.btn_recarregar.grid(row=99, column=0, padx=20, pady=(10, 5), sticky="ew")
+        self.btn_recarregar = ctk.CTkButton(
+            self.sidebar_frame,
+            text="Recarregar módulos",
+            command=self.recarregar_modulos,
+        )
+        self.btn_recarregar.grid(
+            row=99,
+            column=0,
+            padx=20,
+            pady=(10, 5),
+            sticky="ew",
+        )
 
-        self.btn_theme = ctk.CTkButton(self.sidebar_frame, text="Mudar tema", command=self.btn_change_theme)
-        self.btn_theme.grid(row=100, column=0, padx=20, pady=20, sticky="s")
+        self.btn_theme = ctk.CTkButton(
+            self.sidebar_frame,
+            text="Mudar tema",
+            command=self.btn_change_theme,
+        )
+        self.btn_theme.grid(
+            row=100,
+            column=0,
+            padx=20,
+            pady=(5, 20),
+            sticky="ew",
+        )
 
-    '''
-    Funções
-    '''
-    # Alternador de tema do APP
+    def _texto_usuario_lateral(self) -> str:
+        usuario_windows = AccessService.obter_usuario_windows()
+        if self.usuario_atual is None:
+            return f"Usuário: {usuario_windows}\nSem acesso configurado"
+
+        return (
+            f"{self.usuario_atual.nome_exibicao}\n"
+            f"{self.usuario_atual.usuario_windows}"
+        )
+
     def btn_change_theme(self):
-        if ctk.get_appearance_mode() == "Dark":
-            ctk.set_appearance_mode("Light")
-        else:
-            ctk.set_appearance_mode("Dark")
+        novo_tema = (
+            "Light"
+            if ctk.get_appearance_mode() == "Dark"
+            else "Dark"
+        )
+        ctk.set_appearance_mode(novo_tema)
 
-    # Carregador de módulos
+        if (
+            self.usuario_atual is not None
+            and self.access_service is not None
+            and self.usuario_atual.ativo
+        ):
+            try:
+                self.access_service.salvar_tema(
+                    self.usuario_atual,
+                    novo_tema,
+                )
+            except Exception as exc:
+                messagebox.showwarning(
+                    "Falha ao gravar tema",
+                    f"\n{exc}",
+                )
+
     def carregar_menu_modulos(self, recarregar: bool = False) -> int:
-        '''
-        Remove os botões antigos da barra lateral, caso existam
-        '''
-        # Destrói todos os botões mapeados pela lista principal
         for botao in self.botoes_modulos:
             try:
                 botao.destroy()
             except Exception:
                 pass
-
-        # Limpa a Lista
         self.botoes_modulos.clear()
 
         modulos = ModuleLoader.carregar_modulos(recarregar=recarregar)
 
-        linha = 1
+        if self.access_service is not None:
+            try:
+                self.access_service.sincronizar_modulos(modulos)
+            except Exception as exc:
+                self.erro_acesso = str(exc)
+                print(f"Erro ao sincronizar catálogo de módulos: {exc}")
 
-        for modulo in modulos:
+        if self.usuario_atual is None or not self.usuario_atual.ativo:
+            return 0
+
+        modulos_permitidos = [
+            modulo
+            for modulo in modulos
+            if self.usuario_atual.pode_acessar(modulo.CODIGO)
+        ]
+
+        linha = 1
+        for modulo in modulos_permitidos:
             botao = ctk.CTkButton(
                 self.sidebar_frame,
                 text=modulo.NOME,
                 command=lambda m=modulo: self.abrir_modulo(m),
             )
-
             botao.grid(
                 row=linha,
                 column=0,
@@ -116,45 +199,82 @@ class HomePage(ctk.CTk):
                 pady=10,
                 sticky="ew",
             )
-
             self.botoes_modulos.append(botao)
             linha += 1
 
-        return len(modulos)
-    
-    # Abre o módulo selecionado
+        return len(modulos_permitidos)
+
     def abrir_modulo(self, modulo) -> None:
+        if (
+            self.usuario_atual is None
+            or not self.usuario_atual.pode_acessar(modulo.CODIGO)
+        ):
+            messagebox.showerror(
+                "Acesso não permitido",
+                "Seu usuário não possui acesso a este módulo.",
+            )
+            return
+
         self.limpar_tela()
         modulo.abrir(self.conteudo_frame)
 
-    # Limpa a tela ativa
     def limpar_tela(self):
         for widget in self.conteudo_frame.winfo_children():
             widget.destroy()
 
-    # Recarrega módulos da pasta "modules"
+    def _mostrar_situacao_usuario(self) -> None:
+        if self.erro_acesso:
+            titulo = "Não foi possível consultar seus acessos"
+            detalhe = self.erro_acesso
+        elif self.usuario_atual is None:
+            titulo = "Usuário sem acesso configurado"
+            detalhe = (
+                f"Usuário: {AccessService.obter_usuario_windows()}\n"
+                "Solicitar cadastro."
+            )
+        elif not self.usuario_atual.ativo:
+            titulo = "Usuário inativo"
+            detalhe = ""
+        elif not self.botoes_modulos:
+            titulo = "Nenhum módulo liberado"
+            detalhe = ""
+        else:
+            return
+
+        ctk.CTkLabel(
+            self.conteudo_frame,
+            text=f"{titulo}\n\n{detalhe}",
+            justify="center",
+            font=ctk.CTkFont(size=18, weight="bold"),
+        ).grid(row=0, column=0, sticky="nsew", padx=30, pady=30)
+
     def recarregar_modulos(self) -> None:
         try:
             self.limpar_tela()
             self.update_idletasks()
 
-            quantidade = self.carregar_menu_modulos(
-                recarregar=True
-            )
+            self._carregar_contexto_usuario()
+            self.lbl_usuario.configure(text=self._texto_usuario_lateral())
 
-            ctk.CTkLabel(
-                self.conteudo_frame,
-                text=(
-                    "Módulos recarregados com sucesso.\n"
-                    f"{quantidade} módulo(s) encontrado(s)."
-                ),
-                font=ctk.CTkFont(size=18, weight="bold"),
-            ).pack(expand=True, padx=30, pady=30)
+            quantidade = self.carregar_menu_modulos(recarregar=True)
+            self._mostrar_situacao_usuario()
 
+            if (
+                self.usuario_atual is not None
+                and self.usuario_atual.ativo
+                and quantidade > 0
+            ):
+                ctk.CTkLabel(
+                    self.conteudo_frame,
+                    text=(
+                        "Módulos e permissões recarregados com sucesso."
+                    ),
+                    font=ctk.CTkFont(size=18, weight="bold"),
+                ).grid(row=0, column=0, sticky="nsew", padx=30, pady=30)
         except Exception as exc:
             ctk.CTkLabel(
                 self.conteudo_frame,
                 text=f"Erro ao recarregar módulos:\n{exc}",
                 text_color="#E74C3C",
                 font=ctk.CTkFont(size=16),
-            ).pack(expand=True, padx=30, pady=30)
+            ).grid(row=0, column=0, sticky="nsew", padx=30, pady=30)

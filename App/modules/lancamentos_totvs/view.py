@@ -78,7 +78,7 @@ class LancamentosTotvsView(ctk.CTkFrame):
             values=["TODOS", "EST", "FAB"],
             command=lambda _value: self._apply_filters(),
         )
-        self.type_filter.set("TODOS")
+        self.type_filter.set("EST")
         self.type_filter.grid(row=0, column=1, padx=(0, 12), pady=10)
 
         ctk.CTkLabel(filters, text="Pesquisar:").grid(
@@ -380,7 +380,7 @@ class LancamentosTotvsView(ctk.CTkFrame):
         self._update_selection_count()
 
     def _clear_filters(self) -> None:
-        self.type_filter.set("TODOS")
+        self.type_filter.set("EST")
         self.search_entry.delete(0, "end")
         self._apply_filters()
 

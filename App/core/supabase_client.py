@@ -11,9 +11,7 @@ from config.settings import BASE_PATH
 
 @lru_cache(maxsize=1)
 def get_supabase() -> Client:
-    '''
-    Configuração do Supabase.
-    '''
+    """Retorna o cliente Supabase usado pelo núcleo compilado da aplicação."""
     env_path = BASE_PATH / ".env"
     load_dotenv(dotenv_path=env_path, override=False)
 
@@ -24,6 +22,8 @@ def get_supabase() -> Client:
     )
 
     if not url or not key:
-        raise RuntimeError("Supabase não configurado")
+        raise RuntimeError(
+            "Banco de dados não configurado"
+        )
 
     return create_client(url, key)

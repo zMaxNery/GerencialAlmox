@@ -1,4 +1,4 @@
-from modules.resumo_entregas.view import ResumoEntregasView
+from modules.requisicoes_finalizadas.view import ResumoEntregasView
 
 NOME = "Material Entregue"
 ORDEM = 3
