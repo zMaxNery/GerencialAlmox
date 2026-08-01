@@ -311,21 +311,19 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             )
             self.instrucao_label.configure(
                 text=(
-                    "Use somente o material que já está na fábrica. "
-                    "A quantidade pode ser menor que o saldo e gerar uma entrega parcial."
+                    "Usar apenas o saldo da fábrica"
                 )
             )
 
         elif modo == self.OPCAO_MISTA:
             valor_inicial = self.quantidade_informada
             self.quantidade_label.configure(
-                text="Quantidade nova enviada do estoque:"
+                text="Quantidade enviada do estoque:"
             )
             self.instrucao_label.configure(
                 text=(
-                    "O sistema utilizará primeiro todo o saldo possível da fábrica. "
-                    "A quantidade abaixo representa somente o material novo enviado "
-                    "pelo operador."
+                    "Utilizar todo estoque de fábrica."
+                    "O informado abaixo será de estoque."
                 )
             )
 

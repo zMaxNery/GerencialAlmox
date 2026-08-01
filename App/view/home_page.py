@@ -75,7 +75,7 @@ class HomePage(ctk.CTk):
         self.sidebar_frame = ctk.CTkFrame(self, width=230, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
         self.sidebar_frame.grid_columnconfigure(0, weight=1)
-        self.sidebar_frame.grid_rowconfigure(97, weight=1)
+        self.sidebar_frame.grid_rowconfigure(96, weight=1)
 
         self.logo_label = ctk.CTkLabel(
             self.sidebar_frame,
@@ -92,7 +92,7 @@ class HomePage(ctk.CTk):
             wraplength=190,
         )
         self.lbl_usuario.grid(
-            row=98,
+            row=97,
             column=0,
             padx=20,
             pady=(10, 5),
@@ -105,7 +105,7 @@ class HomePage(ctk.CTk):
             command=self.recarregar_modulos,
         )
         self.btn_recarregar.grid(
-            row=99,
+            row=98,
             column=0,
             padx=20,
             pady=(10, 5),
@@ -118,6 +118,22 @@ class HomePage(ctk.CTk):
             command=self.btn_change_theme,
         )
         self.btn_theme.grid(
+            row=99,
+            column=0,
+            padx=20,
+            pady=(10, 5),
+            sticky="ew",
+        )
+
+        self.btn_fechar = ctk.CTkButton(
+            self.sidebar_frame,
+            text="Fechar",
+            command=self.destroy,
+            height=50,
+            fg_color="#F92C15",
+            hover_color="#961F12",
+        )
+        self.btn_fechar.grid(
             row=100,
             column=0,
             padx=20,
