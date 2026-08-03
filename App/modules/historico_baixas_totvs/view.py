@@ -87,7 +87,7 @@ class HistoricoBaixasTotvsView(ctk.CTkFrame):
 
         self.search_entry = ctk.CTkEntry(
             filters,
-            placeholder_text="Requisição, material, responsável ou operador",
+            placeholder_text="Requisição, material ou usuario",
         )
         self.search_entry.grid(row=0, column=3, sticky="ew", padx=(0, 12), pady=10)
         self.search_entry.bind("<KeyRelease>", lambda _event: self._apply_filters())
