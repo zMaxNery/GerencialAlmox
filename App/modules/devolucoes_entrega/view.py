@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
-from decimal import Decimal
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
 import customtkinter as ctk
 
-from modules._shared.almox_repository import AlmoxRepository
+from modules.devolucoes_entrega.scripts import Scripts
 
 
 class HistoricoDevolucoesView(ctk.CTkFrame):
@@ -29,8 +27,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent, corner_radius=0)
 
-        self.repository: AlmoxRepository | None = None
-        self.all_rows: list[dict] = []
+        self.scripts = Scripts(self)
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
@@ -38,7 +35,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         self._build_header()
         self._build_filters()
         self._build_table()
-        self.after(100, self.refresh)
+        self.after(100, self.scripts.refresh)
 
     def _build_header(self) -> None:
         header = ctk.CTkFrame(self, fg_color="transparent")
@@ -53,7 +50,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         ctk.CTkButton(
             header,
             text="Atualizar",
-            command=self.refresh,
+            command=self.scripts.refresh,
         ).pack(side="right")
 
     def _build_filters(self) -> None:
@@ -67,7 +64,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
             filtros,
             width=115,
             values=["TODOS"],
-            command=lambda _valor: self._apply_filters(),
+            command=lambda _valor: self.scripts._apply_filters(),
         )
         self.setor_filter.set("TODOS")
         self.setor_filter.pack(side="left", padx=(0, 8), pady=10)
@@ -79,7 +76,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
             filtros,
             width=125,
             values=["TODAS"],
-            command=lambda _valor: self._apply_filters(),
+            command=lambda _valor: self.scripts._apply_filters(),
         )
         self.data_filter.set("TODAS")
         self.data_filter.pack(side="left", padx=(0, 8), pady=10)
@@ -91,7 +88,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
             filtros,
             width=105,
             values=["TODOS"],
-            command=lambda _valor: self._apply_filters(),
+            command=lambda _valor: self.scripts._apply_filters(),
         )
         self.estoque_filter.set("TODOS")
         self.estoque_filter.pack(side="left", padx=(0, 8), pady=10)
@@ -106,7 +103,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         )
         self.material_filter.pack(side="left", padx=(0, 8), pady=10)
         self.material_filter.bind(
-            "<KeyRelease>", lambda _event: self._apply_filters()
+            "<KeyRelease>", lambda _event: self.scripts._apply_filters()
         )
 
         ctk.CTkLabel(filtros, text="Rastreabilidade:").pack(
@@ -119,7 +116,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         )
         self.rastreabilidade_filter.pack(side="left", padx=(0, 8), pady=10)
         self.rastreabilidade_filter.bind(
-            "<KeyRelease>", lambda _event: self._apply_filters()
+            "<KeyRelease>", lambda _event: self.scripts._apply_filters()
         )
 
         ctk.CTkLabel(filtros, text="Operador:").pack(
@@ -132,14 +129,14 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         )
         self.operador_filter.pack(side="left", padx=(0, 8), pady=10)
         self.operador_filter.bind(
-            "<KeyRelease>", lambda _event: self._apply_filters()
+            "<KeyRelease>", lambda _event: self.scripts._apply_filters()
         )
 
         ctk.CTkButton(
             filtros,
             text="Limpar",
             width=80,
-            command=self._clear_filters,
+            command=self.scripts._clear_filters,
         ).pack(side="left", padx=8, pady=10)
 
         self.counter_label = ctk.CTkLabel(filtros, text="0 devolução(ões)")
@@ -222,173 +219,3 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         y_scroll.grid(row=0, column=1, sticky="ns")
         x_scroll.grid(row=1, column=0, sticky="ew")
-
-    def refresh(self) -> None:
-        try:
-            if self.repository is None:
-                self.repository = AlmoxRepository()
-
-            self.all_rows = self.repository.listar_historico_devolucoes()
-
-        except Exception as exc:
-            messagebox.showerror("Histórico de devoluções", str(exc))
-            return
-
-        self._update_filter_options()
-        self._apply_filters()
-
-    def _update_filter_options(self) -> None:
-        setores = self._unique_values("setor_dest")
-        estoques = self._unique_values("localizacao_est")
-        datas = sorted(
-            {
-                self._fmt_data(row.get("devolvido_em"))
-                for row in self.all_rows
-                if row.get("devolvido_em")
-            },
-            reverse=True,
-        )
-
-        self._set_option_values(self.setor_filter, ["TODOS", *setores], "TODOS")
-        self._set_option_values(
-            self.estoque_filter, ["TODOS", *estoques], "TODOS"
-        )
-        self._set_option_values(self.data_filter, ["TODAS", *datas], "TODAS")
-
-    def _apply_filters(self) -> None:
-        setor = self.setor_filter.get().strip()
-        data_devolucao = self.data_filter.get().strip()
-        estoque = self.estoque_filter.get().strip()
-        material = self.material_filter.get().strip().lower()
-        rastreabilidade = self.rastreabilidade_filter.get().strip().lower()
-        operador = self.operador_filter.get().strip().lower()
-
-        filtrados: list[dict] = []
-
-        for row in self.all_rows:
-            if setor != "TODOS" and str(row.get("setor_dest") or "") != setor:
-                continue
-
-            if (
-                data_devolucao != "TODAS"
-                and self._fmt_data(row.get("devolvido_em")) != data_devolucao
-            ):
-                continue
-
-            if estoque != "TODOS" and str(row.get("localizacao_est") or "") != estoque:
-                continue
-
-            if material and material not in str(row.get("material") or "").lower():
-                continue
-
-            if rastreabilidade and rastreabilidade not in str(
-                row.get("rastreabilidade") or ""
-            ).lower():
-                continue
-
-            if operador and operador not in str(
-                row.get("operador_devolucao") or ""
-            ).lower():
-                continue
-
-            filtrados.append(row)
-
-        self._fill_table(filtrados)
-        self.counter_label.configure(text=f"{len(filtrados)} devolução(ões)")
-
-    def _fill_table(self, data: list[dict]) -> None:
-        for item_id in self.tree.get_children():
-            self.tree.delete(item_id)
-
-        for indice, row in enumerate(data):
-            tag = "linha_par" if indice % 2 == 0 else "linha_impar"
-
-            self.tree.insert(
-                "",
-                "end",
-                iid=str(row["devolucao_id"]),
-                values=(
-                    self._fmt_data(row.get("devolvido_em")),
-                    self._fmt_hora(row.get("devolvido_em")),
-                    self._fmt_data(row.get("data_requisicao")),
-                    self._fmt_hora(row.get("recebido_em_email")),
-                    row.get("material") or "",
-                    row.get("dimensao") or "",
-                    self._fmt(row.get("quantidade_entregue_original")),
-                    self._fmt(row.get("quantidade_devolvida")),
-                    row.get("rastreabilidade") or "",
-                    row.get("localizacao_est") or "",
-                    row.get("setor_dest") or "",
-                    row.get("operador_devolucao") or "",
-                    row.get("observacao_devolucao") or "",
-                ),
-                tags=(tag,),
-            )
-
-    def _clear_filters(self) -> None:
-        self.setor_filter.set("TODOS")
-        self.data_filter.set("TODAS")
-        self.estoque_filter.set("TODOS")
-        self.material_filter.delete(0, "end")
-        self.rastreabilidade_filter.delete(0, "end")
-        self.operador_filter.delete(0, "end")
-        self._apply_filters()
-
-    def _unique_values(self, field: str) -> list[str]:
-        return sorted(
-            {
-                str(row.get(field)).strip()
-                for row in self.all_rows
-                if row.get(field) not in (None, "")
-            },
-            key=str.lower,
-        )
-
-    @staticmethod
-    def _set_option_values(
-        option_menu: ctk.CTkOptionMenu,
-        values: list[str],
-        default: str,
-    ) -> None:
-        atual = option_menu.get()
-        option_menu.configure(values=values)
-        if atual not in values:
-            option_menu.set(default)
-
-    @staticmethod
-    def _converter_data_hora(value) -> datetime | None:
-        if value in (None, ""):
-            return None
-
-        texto = str(value).strip().replace("Z", "+00:00")
-
-        try:
-            data_hora = datetime.fromisoformat(texto)
-        except ValueError:
-            try:
-                return datetime.strptime(texto[:10], "%Y-%m-%d")
-            except ValueError:
-                return None
-
-        if data_hora.tzinfo is not None:
-            data_hora = data_hora.astimezone()
-
-        return data_hora
-
-    @classmethod
-    def _fmt_data(cls, value) -> str:
-        data_hora = cls._converter_data_hora(value)
-        return data_hora.strftime("%d/%m/%Y") if data_hora else ""
-
-    @classmethod
-    def _fmt_hora(cls, value) -> str:
-        data_hora = cls._converter_data_hora(value)
-        return data_hora.strftime("%H:%M") if data_hora else ""
-
-    @staticmethod
-    def _fmt(value) -> str:
-        if value in (None, ""):
-            return "0"
-
-        number = Decimal(str(value))
-        return f"{number:.3f}".rstrip("0").rstrip(".") or "0"

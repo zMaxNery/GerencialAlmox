@@ -1,4 +1,4 @@
-from modules.lancamentos_totvs.view import LancamentosTotvsView
+from modules.lancamentos_baixa_totvs.view import LancamentosTotvsView
 
 NOME = "Baixas TOTVS"
 ORDEM = 6

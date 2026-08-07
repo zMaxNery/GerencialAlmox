@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import getpass
 from tkinter import ttk
 
 import customtkinter as ctk
@@ -169,34 +168,34 @@ class EntregasEstView(ctk.CTkFrame):
         painel.grid_propagate(False)
         painel.grid_columnconfigure((0, 1, 2), weight=1)
 
-        ctk.CTkLabel(
-            painel,
-            text="Item selecionado",
-            font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(
-            row=0,
-            column=0,
-            columnspan=3,
-            sticky="w",
-            padx=12,
-            pady=(12, 2),
-        )
+        # ctk.CTkLabel(
+        #     painel,
+        #     text="Item selecionado",
+        #     font=ctk.CTkFont(size=14, weight="bold"),
+        # ).grid(
+        #     row=0,
+        #     column=0,
+        #     columnspan=3,
+        #     sticky="w",
+        #     padx=12,
+        #     pady=(12, 2),
+        # )
 
-        self.selected_label = ctk.CTkLabel(
-            painel,
-            text="Nenhum item selecionado",
-            anchor="w",
-            justify="left",
-            wraplength=260,
-        )
-        self.selected_label.grid(
-            row=1,
-            column=0,
-            columnspan=3,
-            sticky="ew",
-            padx=12,
-            pady=(0, 4),
-        )
+        # self.selected_label = ctk.CTkLabel(
+        #     painel,
+        #     text="Nenhum item selecionado",
+        #     anchor="w",
+        #     justify="left",
+        #     wraplength=260,
+        # )
+        # self.selected_label.grid(
+        #     row=1,
+        #     column=0,
+        #     columnspan=3,
+        #     sticky="ew",
+        #     padx=12,
+        #     pady=(0, 4),
+        # )
 
         self.fabrica_label = ctk.CTkLabel(
             painel,
@@ -295,53 +294,53 @@ class EntregasEstView(ctk.CTkFrame):
             command=self.scripts._keypad_fill_remaining,
         ).grid(row=9, column=2, sticky="ew", padx=5, pady=5)
 
-        ctk.CTkLabel(
-            painel,
-            text="Operador:",
-        ).grid(
-            row=10,
-            column=0,
-            columnspan=3,
-            sticky="w",
-            padx=12,
-            pady=(12, 2),
-        )
+        # ctk.CTkLabel(
+        #     painel,
+        #     text="Operador:",
+        # ).grid(
+        #     row=10,
+        #     column=0,
+        #     columnspan=3,
+        #     sticky="w",
+        #     padx=12,
+        #     pady=(12, 2),
+        # )
 
-        self.operator_entry = ctk.CTkEntry(painel)
-        self.operator_entry.insert(0, getpass.getuser())
-        self.operator_entry.grid(
-            row=11,
-            column=0,
-            columnspan=3,
-            sticky="ew",
-            padx=12,
-            pady=(0, 8),
-        )
+        # self.operator_entry = ctk.CTkEntry(painel)
+        # self.operator_entry.insert(0, getpass.getuser())
+        # self.operator_entry.grid(
+        #     row=11,
+        #     column=0,
+        #     columnspan=3,
+        #     sticky="ew",
+        #     padx=12,
+        #     pady=(0, 8),
+        # )
 
-        ctk.CTkLabel(
-            painel,
-            text="Observação:",
-        ).grid(
-            row=12,
-            column=0,
-            columnspan=3,
-            sticky="w",
-            padx=12,
-            pady=(2, 2),
-        )
+        # ctk.CTkLabel(
+        #     painel,
+        #     text="Observação:",
+        # ).grid(
+        #     row=12,
+        #     column=0,
+        #     columnspan=3,
+        #     sticky="w",
+        #     padx=12,
+        #     pady=(2, 2),
+        # )
 
-        self.note_entry = ctk.CTkEntry(
-            painel,
-            placeholder_text="Opcional",
-        )
-        self.note_entry.grid(
-            row=13,
-            column=0,
-            columnspan=3,
-            sticky="ew",
-            padx=12,
-            pady=(0, 10),
-        )
+        # self.note_entry = ctk.CTkEntry(
+        #     painel,
+        #     placeholder_text="Opcional",
+        # )
+        # self.note_entry.grid(
+        #     row=13,
+        #     column=0,
+        #     columnspan=3,
+        #     sticky="ew",
+        #     padx=12,
+        #     pady=(0, 10),
+        # )
 
         ctk.CTkButton(
             painel,
@@ -355,7 +354,7 @@ class EntregasEstView(ctk.CTkFrame):
             columnspan=3,
             sticky="ew",
             padx=12,
-            pady=(4, 12),
+            pady=25,
         )
 
     def _build_table(self, parent) -> None:

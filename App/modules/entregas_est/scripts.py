@@ -1,4 +1,4 @@
-
+import getpass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from tkinter import messagebox
@@ -139,10 +139,10 @@ class Scripts:
             self.est_view.tree.see(selected_id)
             self._on_select()
 
-        elif not data:
-            self.est_view.selected_label.configure(text="Nenhum item encontrado")
-            self.est_view.fabrica_label.grid_remove()
-            self.est_view.quantidade_var.set("")
+        # elif not data:
+        #     self.est_view.selected_label.configure(text="Nenhum item encontrado")
+        #     self.est_view.fabrica_label.grid_remove()
+        #     self.est_view.quantidade_var.set("")
 
     def _on_select(self, _event=None) -> None:
         selected = self.est_view.tree.selection()
@@ -153,12 +153,12 @@ class Scripts:
         if row is None:
             return
 
-        self.est_view.selected_label.configure(
-            text=(
-                f"{row.get('material', '')} | {row.get('rastreabilidade', '')}\n"
-                f"Falta entregar: {self._fmt(row.get('quantidade_restante'))}"
-            )
-        )
+        # self.est_view.selected_label.configure(
+        #     text=(
+        #         f"{row.get('material', '')} | {row.get('rastreabilidade', '')}\n"
+        #         f"Falta entregar: {self._fmt(row.get('quantidade_restante'))}"
+        #     )
+        # )
         self.est_view.quantidade_var.set("")
         self._atualizar_saldo_fabrica(row)
 
@@ -261,13 +261,13 @@ class Scripts:
             )
             return
 
-        usuario = self.est_view.operator_entry.get().strip()
-        if not usuario:
-            messagebox.showinfo(
-                "Entrega de MP",
-                "Informe o nome do operador.",
-            )
-            return
+        usuario = getpass.getuser()
+        # if not usuario:
+        #     messagebox.showinfo(
+        #         "Entrega de MP",
+        #         "Informe o nome do operador.",
+        #     )
+        #     return
 
         quantidade = self._ler_quantidade_principal()
         if quantidade is None:
@@ -307,7 +307,7 @@ class Scripts:
                 consulta=consulta,
                 quantidade_informada=quantidade,
                 nome_operador=usuario,
-                observacao=self.est_view.note_entry.get().strip() or None,
+                # observacao=self.est_view.note_entry.get().strip() or None,
                 on_success=self._apos_registro,
             )
             return
