@@ -469,5 +469,3 @@ class EntregasEstView(ctk.CTkFrame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         y_scroll.grid(row=0, column=1, sticky="ns")
         x_scroll.grid(row=1, column=0, sticky="ew")
-
-    

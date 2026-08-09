@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import getpass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -329,7 +331,7 @@ class Scripts:
                 item_requisicao_id=int(row["item_requisicao_id"]),
                 quantidade=quantidade,
                 nome_operador=usuario,
-                observacao=self.est_view.note_entry.get().strip() or None,
+                # observacao=self.est_view.note_entry.get().strip() or None,
             )
         except Exception as exc:
             messagebox.showerror("Entrega de MP", str(exc))
@@ -353,7 +355,7 @@ class Scripts:
 
     def _apos_registro(self) -> None:
         self.est_view.quantidade_var.set("")
-        self.est_view.note_entry.delete(0, "end")
+        # self.est_view.note_entry.delete(0, "end")
         self.est_view.fabrica_label.grid_remove()
         self.refresh()
 

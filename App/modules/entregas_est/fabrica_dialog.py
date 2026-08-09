@@ -24,7 +24,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         consulta: dict,
         quantidade_informada: Decimal,
         nome_operador: str,
-        observacao: str | None,
+        # observacao: str | None,
         on_success: Callable[[], None],
     ) -> None:
         super().__init__(parent)
@@ -34,7 +34,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         self.consulta = consulta
         self.quantidade_informada = Decimal(str(quantidade_informada))
         self.nome_operador = nome_operador
-        self.observacao = observacao
+        # self.observacao = observacao
         self.on_success = on_success
 
         self.quantidade_disponivel = Decimal(
@@ -456,7 +456,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
                     item_requisicao_id=int(self.item["item_requisicao_id"]),
                     quantidade_fabrica=quantidade,
                     nome_operador=self.nome_operador,
-                    observacao=self.observacao,
+                    # observacao=self.observacao,
                 )
 
             elif modo == self.OPCAO_MISTA:
@@ -464,7 +464,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
                     item_requisicao_id=int(self.item["item_requisicao_id"]),
                     quantidade_nova=quantidade,
                     nome_operador=self.nome_operador,
-                    observacao=self.observacao,
+                    # observacao=self.observacao,
                 )
 
             else:
@@ -472,7 +472,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
                     item_requisicao_id=int(self.item["item_requisicao_id"]),
                     quantidade=quantidade,
                     nome_operador=self.nome_operador,
-                    observacao=self.observacao,
+                    # observacao=self.observacao,
                 )
 
         except Exception as exc:
