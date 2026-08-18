@@ -104,10 +104,8 @@ class Scripts:
                 "end",
                 iid=str(row["devolucao_id"]),
                 values=(
-                    self._fmt_data(row.get("devolvido_em")),
-                    self._fmt_hora(row.get("devolvido_em")),
-                    self._fmt_data(row.get("data_requisicao")),
-                    self._fmt_hora(row.get("recebido_em_email")),
+                    self._fmt_data_hora(row.get("devolvido_em")),
+                    self._fmt_request_datetime(row),
                     row.get("material") or "",
                     row.get("dimensao") or "",
                     self._fmt(row.get("quantidade_entregue_original")),
@@ -170,6 +168,23 @@ class Scripts:
             data_hora = data_hora.astimezone()
 
         return data_hora
+
+    @classmethod
+    def _fmt_data_hora(cls, value) -> str:
+        data_hora = cls._converter_data_hora(value)
+        return data_hora.strftime("%d/%m/%Y %H:%M") if data_hora else ""
+
+    @classmethod
+    def _fmt_request_datetime(cls, row: dict) -> str:
+        data = cls._fmt_data(row.get("data_requisicao"))
+        hora = cls._fmt_hora(row.get("recebido_em_email"))
+
+        if data and hora:
+            return f"{data} {hora}"
+        if data:
+            return data
+
+        return cls._fmt_data_hora(row.get("recebido_em_email"))
 
     @classmethod
     def _fmt_data(cls, value) -> str:

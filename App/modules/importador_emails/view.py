@@ -155,10 +155,10 @@ class ImportadorEmailsView(ctk.CTkFrame):
             "arquivo": "Arquivo",
             "local": "Local",
             "tipo": "Tipo",
-            "detalhes": "Detalhes",
-            "resumos": "Resumo",
+            "detalhes": "Materiais",
+            "resumos": "Requisições",
             "peso": "Peso Líquido",
-            "status": "Situação",
+            "status": "Status",
         }
         widths = {
             "arquivo": 360,

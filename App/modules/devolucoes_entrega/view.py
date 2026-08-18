@@ -9,10 +9,8 @@ from modules.devolucoes_entrega.scripts import Scripts
 
 class HistoricoDevolucoesView(ctk.CTkFrame):
     COLUMNS = (
-        "data_devolucao",
-        "hora_devolucao",
-        "data_requisicao",
-        "hora_requisicao",
+        "devolvido_em",
+        "requisitado_em",
         "material",
         "dimensao",
         "entregue",
@@ -174,10 +172,8 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         )
 
         labels = {
-            "data_devolucao": "Dt Dev.",
-            "hora_devolucao": "Hr Dev.",
-            "data_requisicao": "Dt Req.",
-            "hora_requisicao": "Hr Req.",
+            "devolvido_em": "Dt/Hr Dev",
+            "requisitado_em": "Dt/Hr Req",
             "material": "Material",
             "dimensao": "Dimensão",
             "entregue": "Qtd. Req.",
@@ -189,10 +185,8 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
             "observacao": "Observação",
         }
         widths = {
-            "data_devolucao": 100,
-            "hora_devolucao": 85,
-            "data_requisicao": 100,
-            "hora_requisicao": 85,
+            "devolvido_em": 150,
+            "requisitado_em": 150,
             "material": 280,
             "dimensao": 120,
             "entregue": 110,

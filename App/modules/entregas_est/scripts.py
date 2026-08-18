@@ -120,8 +120,7 @@ class Scripts:
                 "end",
                 iid=key,
                 values=(
-                    row.get("data_requisicao") or "",
-                    self._fmt_hora(row.get("recebido_em_email")),
+                    self._fmt_request_datetime(row),
                     row.get("material") or "",
                     row.get("dimensao") or "",
                     self._fmt(row.get("quantidade_solicitada")),
@@ -400,6 +399,21 @@ class Scripts:
 
         if atual not in values:
             option_menu.set(default)
+
+    @classmethod
+    def _fmt_request_datetime(cls, row: dict) -> str:
+        data = cls._fmt_date(row.get("data_requisicao"))
+        hora = cls._fmt_hora(row.get("recebido_em_email"))
+
+        if data and hora:
+            return f"{data} {hora}"
+        if data:
+            return data
+
+        data_recebimento = cls._fmt_date(row.get("recebido_em_email"))
+        if data_recebimento and hora:
+            return f"{data_recebimento} {hora}"
+        return data_recebimento or hora
 
     @staticmethod
     def _fmt_date(value) -> str:

@@ -461,10 +461,8 @@ class JanelaDevolucao(ctk.CTkToplevel):
     
 class ResumoEntregasView(ctk.CTkFrame):
     COLUMNS = (
-        "data_requisicao",
-        "hora_requisicao",
-        "data_entrega",
-        "hora_entrega",
+        "requisitado_em",
+        "entregue_em",
         "material",
         "dimensao",
         "solicitado",
@@ -623,10 +621,8 @@ class ResumoEntregasView(ctk.CTkFrame):
         )
 
         labels = {
-            "data_requisicao": "Dt Req",
-            "hora_requisicao": "Hr Req",
-            "data_entrega": "Dt Entr",
-            "hora_entrega": "Hr Entr",
+            "requisitado_em": "Dt/Hr Req",
+            "entregue_em": "Dt/Hr Entrega",
             "material": "Material",
             "dimensao": "Dimensão",
             "solicitado": "Solicitado",
@@ -639,10 +635,8 @@ class ResumoEntregasView(ctk.CTkFrame):
             "operador": "Operador",
         }
         widths = {
-            "data_requisicao": 100,
-            "hora_requisicao": 85,
-            "data_entrega": 100,
-            "hora_entrega": 85,
+            "requisitado_em": 155,
+            "entregue_em": 155,
             "material": 280,
             "dimensao": 120,
             "solicitado": 110,
@@ -798,10 +792,8 @@ class ResumoEntregasView(ctk.CTkFrame):
                 "end",
                 iid=key,
                 values=(
-                    self._fmt_data(row.get("data_requisicao")),
-                    self._fmt_hora(row.get("recebido_em_email")),
-                    self._fmt_data(row.get("entregue_em")),
-                    self._fmt_hora(row.get("entregue_em")),
+                    self._fmt_request_datetime(row),
+                    self._fmt_data_hora(row.get("entregue_em")),
                     row.get("material") or "",
                     row.get("dimensao") or "",
                     self._fmt(row.get("quantidade_solicitada")),
@@ -960,6 +952,23 @@ class ResumoEntregasView(ctk.CTkFrame):
             data_hora = data_hora.astimezone()
 
         return data_hora
+
+    @classmethod
+    def _fmt_data_hora(cls, value) -> str:
+        data_hora = cls._converter_data_hora(value)
+        return data_hora.strftime("%d/%m/%Y %H:%M") if data_hora else ""
+
+    @classmethod
+    def _fmt_request_datetime(cls, row: dict) -> str:
+        data = cls._fmt_data(row.get("data_requisicao"))
+        hora = cls._fmt_hora(row.get("recebido_em_email"))
+
+        if data and hora:
+            return f"{data} {hora}"
+        if data:
+            return data
+
+        return cls._fmt_data_hora(row.get("recebido_em_email"))
 
     @classmethod
     def _fmt_data(cls, value) -> str:

@@ -9,8 +9,7 @@ from modules.entregas_est.scripts import Scripts
 
 class View(ctk.CTkFrame):
     COLUMNS = (
-        "data",
-        "horario",
+        "requisitado_em",
         "material",
         "dimensao",
         "solicitado",
@@ -317,8 +316,7 @@ class View(ctk.CTkFrame):
         )
 
         labels = {
-            "data": "Data",
-            "horario": "Hr Req",
+            "requisitado_em": "Dt/Hr Req",
             "material": "Material",
             "dimensao": "Dimensão",
             "solicitado": "Solicitado",
@@ -329,8 +327,7 @@ class View(ctk.CTkFrame):
             "estoque": "Estoque",
         }
         widths = {
-            "data": 110,
-            "horario": 80,
+            "requisitado_em": 150,
             "material": 290,
             "dimensao": 120,
             "solicitado": 110,

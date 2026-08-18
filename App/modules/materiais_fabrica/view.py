@@ -317,8 +317,7 @@ class JanelaAjusteMaterialFabrica(ctk.CTkToplevel):
 
 class MateriaisFabricaView(ctk.CTkFrame):
     COLUMNS = (
-        "data_entrega",
-        "hora_entrega",
+        "data_hora_entrega",
         "material",
         "rastreabilidade",
         "quantidade",
@@ -497,16 +496,14 @@ class MateriaisFabricaView(ctk.CTkFrame):
         )
 
         labels = {
-            "data_entrega": "Dt Entr",
-            "hora_entrega": "Hr Entr",
+            "data_hora_entrega": "Dt/Hr Entrega",
             "material": "Material",
             "rastreabilidade": "Rastreabilidade",
             "quantidade": "Quantidade",
             "operador": "Operador",
         }
         widths = {
-            "data_entrega": 100,
-            "hora_entrega": 85,
+            "data_hora_entrega": 150,
             "material": 430,
             "rastreabilidade": 240,
             "quantidade": 140,
@@ -659,8 +656,7 @@ class MateriaisFabricaView(ctk.CTkFrame):
                 "end",
                 iid=key,
                 values=(
-                    self._fmt_data(row.get("recebido_em")),
-                    self._fmt_hora(row.get("recebido_em")),
+                    self._fmt_data_hora(row.get("recebido_em")),
                     row.get("material") or "",
                     row.get("rastreabilidade") or "",
                     self._fmt(row.get("quantidade_disponivel")),
@@ -688,6 +684,11 @@ class MateriaisFabricaView(ctk.CTkFrame):
             return data_hora
         except (TypeError, ValueError):
             return None
+
+    @classmethod
+    def _fmt_data_hora(cls, value) -> str:
+        data_hora = cls._parse_datetime(value)
+        return data_hora.strftime("%d/%m/%Y %H:%M") if data_hora else ""
 
     @classmethod
     def _fmt_data(cls, value) -> str:
