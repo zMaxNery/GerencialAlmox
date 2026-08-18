@@ -1,4 +1,4 @@
-from modules.lancamentos_baixa_totvs.view import LancamentosTotvsView
+from modules.lancamentos_baixa_totvs.view import View
 
 NOME = "Baixas TOTVS"
 ORDEM = 6
@@ -8,5 +8,5 @@ def abrir(parent):
     for widget in parent.winfo_children():
         widget.destroy()
 
-    view = LancamentosTotvsView(parent)
+    view = View(parent)
     view.pack(fill="both", expand=True)

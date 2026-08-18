@@ -12,12 +12,11 @@ from modules._shared.almox_repository import AlmoxRepository
 from modules.entregas_est.fabrica_dialog import JanelaUsoMaterialFabrica
 
 if TYPE_CHECKING:
-    from modules.entregas_est.view import EntregasEstView
+    from modules.entregas_est.view import View
 
 class Scripts:
-
-    def __init__(self, est_view: EntregasEstView) -> None:
-        self.est_view = est_view
+    def __init__(self, view: View) -> None:
+        self.view = view
         self.repository: AlmoxRepository | None = None
         self.all_rows: list[dict] = []
 
@@ -27,7 +26,7 @@ class Scripts:
                 self.repository = AlmoxRepository()
 
             self.all_rows = self.repository.listar_pendencias_est()
-            self.est_view.saldos_fabrica.clear()
+            self.view.saldos_fabrica.clear()
 
         except Exception as exc:
             messagebox.showerror("Requisições", str(exc))
@@ -49,27 +48,27 @@ class Scripts:
         )
 
         self._set_option_values(
-            self.est_view.setor_filter,
+            self.view.setor_filter,
             ["TODOS", *setores],
             "TODOS",
         )
         self._set_option_values(
-            self.est_view.estoque_filter,
+            self.view.estoque_filter,
             ["TODOS", *estoques],
             "TODOS",
         )
         self._set_option_values(
-            self.est_view.data_filter,
+            self.view.data_filter,
             ["TODAS", *datas],
             "TODAS",
         )
 
     def _apply_filters(self) -> None:
-        setor = self.est_view.setor_filter.get().strip()
-        data = self.est_view.data_filter.get().strip()
-        estoque = self.est_view.estoque_filter.get().strip()
-        material = self.est_view.material_filter.get().strip().lower()
-        rastreabilidade = self.est_view.rastreabilidade_filter.get().strip().lower()
+        setor = self.view.setor_filter.get().strip()
+        data = self.view.data_filter.get().strip()
+        estoque = self.view.estoque_filter.get().strip()
+        material = self.view.material_filter.get().strip().lower()
+        rastreabilidade = self.view.rastreabilidade_filter.get().strip().lower()
 
         filtered: list[dict] = []
 
@@ -100,23 +99,23 @@ class Scripts:
             filtered.append(row)
 
         self._fill_table(filtered)
-        self.est_view.counter_label.configure(text=f"{len(filtered)} item(ns)")
+        self.view.counter_label.configure(text=f"{len(filtered)} item(ns)")
 
     def _fill_table(self, data: list[dict]) -> None:
-        selected_before = self.est_view.tree.selection()
+        selected_before = self.view.tree.selection()
         selected_id = selected_before[0] if selected_before else None
 
-        self.est_view.rows.clear()
+        self.view.rows.clear()
 
-        for item_id in self.est_view.tree.get_children():
-            self.est_view.tree.delete(item_id)
+        for item_id in self.view.tree.get_children():
+            self.view.tree.delete(item_id)
 
         for indice, row in enumerate(data):
             key = str(row["item_requisicao_id"])
-            self.est_view.rows[key] = row
+            self.view.rows[key] = row
             tag_linha = "linha_par" if indice % 2 == 0 else "linha_impar"
 
-            self.est_view.tree.insert(
+            self.view.tree.insert(
                 "",
                 "end",
                 iid=key,
@@ -135,33 +134,33 @@ class Scripts:
                 tags=(tag_linha,),
             )
 
-        if selected_id and self.est_view.tree.exists(selected_id):
-            self.est_view.tree.selection_set(selected_id)
-            self.est_view.tree.focus(selected_id)
-            self.est_view.tree.see(selected_id)
+        if selected_id and self.view.tree.exists(selected_id):
+            self.view.tree.selection_set(selected_id)
+            self.view.tree.focus(selected_id)
+            self.view.tree.see(selected_id)
             self._on_select()
 
         # elif not data:
-        #     self.est_view.selected_label.configure(text="Nenhum item encontrado")
-        #     self.est_view.fabrica_label.grid_remove()
-        #     self.est_view.quantidade_var.set("")
+        #     self.view.selected_label.configure(text="Nenhum item encontrado")
+        #     self.view.fabrica_label.grid_remove()
+        #     self.view.quantidade_var.set("")
 
     def _on_select(self, _event=None) -> None:
-        selected = self.est_view.tree.selection()
+        selected = self.view.tree.selection()
         if not selected:
             return
 
-        row = self.est_view.rows.get(selected[0])
+        row = self.view.rows.get(selected[0])
         if row is None:
             return
 
-        # self.est_view.selected_label.configure(
+        # self.view.selected_label.configure(
         #     text=(
         #         f"{row.get('material', '')} | {row.get('rastreabilidade', '')}\n"
         #         f"Falta entregar: {self._fmt(row.get('quantidade_restante'))}"
         #     )
         # )
-        self.est_view.quantidade_var.set("")
+        self.view.quantidade_var.set("")
         self._atualizar_saldo_fabrica(row)
 
     def _atualizar_saldo_fabrica(self, row: dict) -> None:
@@ -171,16 +170,16 @@ class Scripts:
                 str(consulta.get("quantidade_disponivel") or 0)
             )
         except Exception:
-            self.est_view.fabrica_label.grid_remove()
+            self.view.fabrica_label.grid_remove()
             return
 
         if disponivel > 0:
-            self.est_view.fabrica_label.configure(
+            self.view.fabrica_label.configure(
                 text=f"Em fábrica: {self._fmt(disponivel)} peça(s)"
             )
-            self.est_view.fabrica_label.grid()
+            self.view.fabrica_label.grid()
         else:
-            self.est_view.fabrica_label.grid_remove()
+            self.view.fabrica_label.grid_remove()
 
     def _consultar_material_fabrica(
         self,
@@ -192,23 +191,23 @@ class Scripts:
 
         item_id = int(row["item_requisicao_id"])
 
-        if not forcar and item_id in self.est_view.saldos_fabrica:
-            return self.est_view.saldos_fabrica[item_id]
+        if not forcar and item_id in self.view.saldos_fabrica:
+            return self.view.saldos_fabrica[item_id]
 
         consulta = self.repository.consultar_material_fabrica(
             item_requisicao_id=item_id,
         )
-        self.est_view.saldos_fabrica[item_id] = consulta
+        self.view.saldos_fabrica[item_id] = consulta
         return consulta
 
     def _keypad_add(self, value: str) -> None:
-        atual = self.est_view.quantidade_var.get()
+        atual = self.view.quantidade_var.get()
 
         if value == ",":
             if "," in atual or "." in atual:
                 return
 
-            self.est_view.quantidade_var.set((atual or "0") + ",")
+            self.view.quantidade_var.set((atual or "0") + ",")
             return
 
         novo = f"{atual}{value}"
@@ -221,16 +220,16 @@ class Scripts:
         if novo.startswith("0") and "," not in novo:
             novo = novo.lstrip("0") or "0"
 
-        self.est_view.quantidade_var.set(novo)
+        self.view.quantidade_var.set(novo)
 
     def _keypad_backspace(self) -> None:
-        self.est_view.quantidade_var.set(self.est_view.quantidade_var.get()[:-1])
+        self.view.quantidade_var.set(self.view.quantidade_var.get()[:-1])
 
     def _keypad_clear(self) -> None:
-        self.est_view.quantidade_var.set("")
+        self.view.quantidade_var.set("")
 
     def _keypad_fill_remaining(self) -> None:
-        selected = self.est_view.tree.selection()
+        selected = self.view.tree.selection()
         if not selected:
             messagebox.showinfo(
                 "Entrega de MP",
@@ -238,24 +237,24 @@ class Scripts:
             )
             return
 
-        row = self.est_view.rows.get(selected[0])
+        row = self.view.rows.get(selected[0])
         if row is None:
             return
 
-        self.est_view.quantidade_var.set(
+        self.view.quantidade_var.set(
             self._fmt(row.get("quantidade_restante")).replace(".", ",")
         )
 
     def _clear_filters(self) -> None:
-        self.est_view.setor_filter.set("TODOS")
-        self.est_view.data_filter.set("TODAS")
-        self.est_view.estoque_filter.set("TODOS")
-        self.est_view.material_filter.delete(0, "end")
-        self.est_view.rastreabilidade_filter.delete(0, "end")
+        self.view.setor_filter.set("TODOS")
+        self.view.data_filter.set("TODAS")
+        self.view.estoque_filter.set("TODOS")
+        self.view.material_filter.delete(0, "end")
+        self.view.rastreabilidade_filter.delete(0, "end")
         self._apply_filters()
 
     def register_delivery(self) -> None:
-        selected = self.est_view.tree.selection()
+        selected = self.view.tree.selection()
         if not selected:
             messagebox.showinfo(
                 "Entrega de MP",
@@ -275,7 +274,7 @@ class Scripts:
         if quantidade is None:
             return
 
-        row = self.est_view.rows.get(selected[0])
+        row = self.view.rows.get(selected[0])
         if row is None:
             messagebox.showerror(
                 "Entrega de MP",
@@ -303,13 +302,13 @@ class Scripts:
 
         if disponivel > 0:
             JanelaUsoMaterialFabrica(
-                parent=self.est_view,
+                parent=self.view,
                 repository=self.repository,
                 item=row,
                 consulta=consulta,
                 quantidade_informada=quantidade,
                 nome_operador=usuario,
-                # observacao=self.est_view.note_entry.get().strip() or None,
+                # observacao=self.view.note_entry.get().strip() or None,
                 on_success=self._apos_registro,
             )
             return
@@ -331,7 +330,7 @@ class Scripts:
                 item_requisicao_id=int(row["item_requisicao_id"]),
                 quantidade=quantidade,
                 nome_operador=usuario,
-                # observacao=self.est_view.note_entry.get().strip() or None,
+                # observacao=self.view.note_entry.get().strip() or None,
             )
         except Exception as exc:
             messagebox.showerror("Entrega de MP", str(exc))
@@ -354,13 +353,13 @@ class Scripts:
         self._apos_registro()
 
     def _apos_registro(self) -> None:
-        self.est_view.quantidade_var.set("")
-        # self.est_view.note_entry.delete(0, "end")
-        self.est_view.fabrica_label.grid_remove()
+        self.view.quantidade_var.set("")
+        # self.view.note_entry.delete(0, "end")
+        self.view.fabrica_label.grid_remove()
         self.refresh()
 
     def _ler_quantidade_principal(self) -> Decimal | None:
-        texto_quantidade = self.est_view.quantidade_var.get().strip().replace(",", ".")
+        texto_quantidade = self.view.quantidade_var.get().strip().replace(",", ".")
 
         try:
             quantidade = Decimal(texto_quantidade)
@@ -377,7 +376,7 @@ class Scripts:
 
     def _rolar_horizontal(self, event) -> str:
         direcao = -1 if event.delta > 0 else 1
-        self.est_view.tree.xview_scroll(direcao, "units")
+        self.view.tree.xview_scroll(direcao, "units")
         return "break"
 
     def _unique_values(self, field: str) -> list[str]:
