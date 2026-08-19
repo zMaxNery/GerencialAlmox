@@ -8,6 +8,9 @@ from tkinter import messagebox, ttk
 import customtkinter as ctk
 
 from modules._shared.almox_repository import AlmoxRepository
+from modules._shared.search_utils import corresponde_pesquisa
+from modules._shared.virtual_keyboard import abrir_teclado_virtual
+from modules.materiais_fabrica.manual_dialog import JanelaInclusaoManualFabrica
 
 
 class JanelaAjusteMaterialFabrica(ctk.CTkToplevel):
@@ -341,119 +344,26 @@ class MateriaisFabricaView(ctk.CTkFrame):
         self.after(100, self.refresh)
 
     def _build_header(self) -> None:
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=20,
-            pady=(20, 8),
-        )
-
-        ctk.CTkLabel(
-            header,
-            text="Materiais em fábrica",
-            font=ctk.CTkFont(size=25, weight="bold"),
-        ).pack(side="left")
-
-        ctk.CTkButton(
-            header,
-            text="Atualizar",
-            command=self.refresh,
-        ).pack(side="right")
-
-        ctk.CTkButton(
-            header,
-            text="Ajustar quantidade",
-            command=self.abrir_ajuste,
-        ).pack(side="right", padx=(0, 10))
-
+        header=ctk.CTkFrame(self,fg_color="transparent")
+        header.grid(row=0,column=0,sticky="ew",padx=20,pady=(20,8))
+        ctk.CTkLabel(header,text="Materiais em fábrica",
+            font=ctk.CTkFont(size=25,weight="bold")).pack(side="left")
+        ctk.CTkButton(header,text="Atualizar",command=self.refresh).pack(side="right")
+        ctk.CTkButton(header,text="Ajustar quantidade",command=self.abrir_ajuste).pack(side="right",padx=(0,10))
+        ctk.CTkButton(header,text="+ Incluir material",command=self.abrir_inclusao_manual).pack(side="right",padx=(0,10))
     def _build_filters(self) -> None:
-        filtros = ctk.CTkFrame(self)
-        filtros.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            padx=20,
-            pady=8,
-        )
-
-        ctk.CTkLabel(filtros, text="Data:").pack(
-            side="left",
-            padx=(10, 4),
-            pady=10,
-        )
-        self.data_filter = ctk.CTkOptionMenu(
-            filtros,
-            width=125,
-            values=["TODAS"],
-            command=lambda _valor: self._apply_filters(),
-        )
-        self.data_filter.set("TODAS")
-        self.data_filter.pack(side="left", padx=(0, 8), pady=10)
-
-        ctk.CTkLabel(filtros, text="Material:").pack(
-            side="left",
-            padx=(4, 4),
-            pady=10,
-        )
-        self.material_filter = ctk.CTkEntry(
-            filtros,
-            width=180,
-            placeholder_text="Código ou descrição",
-        )
-        self.material_filter.pack(side="left", padx=(0, 8), pady=10)
-        self.material_filter.bind(
-            "<KeyRelease>",
-            lambda _event: self._apply_filters(),
-        )
-
-        ctk.CTkLabel(filtros, text="Rastreabilidade:").pack(
-            side="left",
-            padx=(4, 4),
-            pady=10,
-        )
-        self.rastreabilidade_filter = ctk.CTkEntry(
-            filtros,
-            width=170,
-            placeholder_text="Buscar",
-        )
-        self.rastreabilidade_filter.pack(
-            side="left",
-            padx=(0, 8),
-            pady=10,
-        )
-        self.rastreabilidade_filter.bind(
-            "<KeyRelease>",
-            lambda _event: self._apply_filters(),
-        )
-
-        ctk.CTkLabel(filtros, text="Operador:").pack(
-            side="left",
-            padx=(4, 4),
-            pady=10,
-        )
-        self.operador_filter = ctk.CTkEntry(
-            filtros,
-            width=150,
-            placeholder_text="Buscar",
-        )
-        self.operador_filter.pack(side="left", padx=(0, 8), pady=10)
-        self.operador_filter.bind(
-            "<KeyRelease>",
-            lambda _event: self._apply_filters(),
-        )
-
-        ctk.CTkButton(
-            filtros,
-            text="Limpar filtros",
-            width=110,
-            command=self._clear_filters,
-        ).pack(side="left", padx=8, pady=10)
-
-        self.counter_label = ctk.CTkLabel(filtros, text="0 lote(s)")
-        self.counter_label.pack(side="right", padx=10, pady=10)
-
+        filtros=ctk.CTkFrame(self); filtros.grid(row=1,column=0,sticky="ew",padx=20,pady=8)
+        ctk.CTkLabel(filtros,text="Data:").pack(side="left",padx=(10,4),pady=10)
+        self.data_filter=ctk.CTkOptionMenu(filtros,width=125,values=["TODAS"],command=lambda _v:self._apply_filters())
+        self.data_filter.set("TODAS"); self.data_filter.pack(side="left",padx=(0,8),pady=10)
+        ctk.CTkLabel(filtros,text="Pesquisar:").pack(side="left",padx=(8,4),pady=10)
+        self.pesquisa_filter=ctk.CTkEntry(filtros,width=390,placeholder_text="Material, rastreabilidade, operador...")
+        self.pesquisa_filter.pack(side="left",padx=(0,4),pady=10)
+        self.pesquisa_filter.bind("<KeyRelease>",lambda _e:self._apply_filters())
+        ctk.CTkButton(filtros,text="⌨",width=44,
+            command=lambda:abrir_teclado_virtual(self.pesquisa_filter)).pack(side="left",padx=(0,6),pady=10)
+        ctk.CTkButton(filtros,text="Limpar",width=80,command=self._clear_filters).pack(side="left",padx=(0,8),pady=10)
+        self.counter_label=ctk.CTkLabel(filtros,text="0 lote(s)"); self.counter_label.pack(side="right",padx=10,pady=10)
     def _build_table(self) -> None:
         style = ttk.Style()
         style.configure(
@@ -569,6 +479,9 @@ class MateriaisFabricaView(ctk.CTkFrame):
         self._update_filter_options()
         self._apply_filters()
 
+    def abrir_inclusao_manual(self) -> None:
+        if self.repository is None: self.repository=AlmoxRepository()
+        JanelaInclusaoManualFabrica(parent=self,repository=self.repository,on_success=self.refresh)
     def abrir_ajuste(self) -> None:
         selecionados = self.tree.selection()
         if not selecionados:
@@ -609,38 +522,15 @@ class MateriaisFabricaView(ctk.CTkFrame):
             self.data_filter.set("TODAS")
 
     def _apply_filters(self) -> None:
-        data = self.data_filter.get().strip()
-        material = self.material_filter.get().strip().lower()
-        rastreabilidade = self.rastreabilidade_filter.get().strip().lower()
-        operador = self.operador_filter.get().strip().lower()
-
-        filtered: list[dict] = []
+        data=self.data_filter.get().strip(); pesquisa=self.pesquisa_filter.get().strip()
+        campos=("material","rastreabilidade","usuario","origem_lote","observacao_origem","recebido_em")
+        filtered=[]
         for row in self.all_rows:
-            quantidade = Decimal(str(row.get("quantidade_disponivel") or 0))
-            if quantidade <= 0:
-                continue
-
-            if data != "TODAS" and self._fmt_data(row.get("recebido_em")) != data:
-                continue
-
-            if material and material not in str(row.get("material") or "").lower():
-                continue
-
-            if rastreabilidade and rastreabilidade not in str(
-                row.get("rastreabilidade") or ""
-            ).lower():
-                continue
-
-            if operador and operador not in str(
-                row.get("usuario") or ""
-            ).lower():
-                continue
-
+            if Decimal(str(row.get("quantidade_disponivel") or 0))<=0: continue
+            if data!="TODAS" and self._fmt_data(row.get("recebido_em"))!=data: continue
+            if not corresponde_pesquisa(row,pesquisa,campos): continue
             filtered.append(row)
-
-        self._fill_table(filtered)
-        self.counter_label.configure(text=f"{len(filtered)} lote(s)")
-
+        self._fill_table(filtered); self.counter_label.configure(text=f"{len(filtered)} lote(s)")
     def _fill_table(self, data: list[dict]) -> None:
         self.rows.clear()
         for item_id in self.tree.get_children():
@@ -666,13 +556,7 @@ class MateriaisFabricaView(ctk.CTkFrame):
             )
 
     def _clear_filters(self) -> None:
-        self.data_filter.set("TODAS")
-        self.material_filter.delete(0, "end")
-        self.rastreabilidade_filter.delete(0, "end")
-        self.operador_filter.delete(0, "end")
-        self._apply_filters()
-
-    @staticmethod
+        self.data_filter.set("TODAS"); self.pesquisa_filter.delete(0,"end"); self._apply_filters()
     def _parse_datetime(value) -> datetime | None:
         if not value:
             return None

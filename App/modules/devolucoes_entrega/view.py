@@ -52,94 +52,23 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         ).pack(side="right")
 
     def _build_filters(self) -> None:
-        filtros = ctk.CTkFrame(self)
-        filtros.grid(row=1, column=0, sticky="ew", padx=20, pady=8)
-
-        ctk.CTkLabel(filtros, text="Setor:").pack(
-            side="left", padx=(10, 4), pady=10
-        )
-        self.setor_filter = ctk.CTkOptionMenu(
-            filtros,
-            width=115,
-            values=["TODOS"],
-            command=lambda _valor: self.scripts._apply_filters(),
-        )
-        self.setor_filter.set("TODOS")
-        self.setor_filter.pack(side="left", padx=(0, 8), pady=10)
-
-        ctk.CTkLabel(filtros, text="Data devolução:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
-        self.data_filter = ctk.CTkOptionMenu(
-            filtros,
-            width=125,
-            values=["TODAS"],
-            command=lambda _valor: self.scripts._apply_filters(),
-        )
-        self.data_filter.set("TODAS")
-        self.data_filter.pack(side="left", padx=(0, 8), pady=10)
-
-        ctk.CTkLabel(filtros, text="Estoque:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
-        self.estoque_filter = ctk.CTkOptionMenu(
-            filtros,
-            width=105,
-            values=["TODOS"],
-            command=lambda _valor: self.scripts._apply_filters(),
-        )
-        self.estoque_filter.set("TODOS")
-        self.estoque_filter.pack(side="left", padx=(0, 8), pady=10)
-
-        ctk.CTkLabel(filtros, text="Material:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
-        self.material_filter = ctk.CTkEntry(
-            filtros,
-            width=135,
-            placeholder_text="Buscar",
-        )
-        self.material_filter.pack(side="left", padx=(0, 8), pady=10)
-        self.material_filter.bind(
-            "<KeyRelease>", lambda _event: self.scripts._apply_filters()
-        )
-
-        ctk.CTkLabel(filtros, text="Rastreabilidade:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
-        self.rastreabilidade_filter = ctk.CTkEntry(
-            filtros,
-            width=135,
-            placeholder_text="Buscar",
-        )
-        self.rastreabilidade_filter.pack(side="left", padx=(0, 8), pady=10)
-        self.rastreabilidade_filter.bind(
-            "<KeyRelease>", lambda _event: self.scripts._apply_filters()
-        )
-
-        ctk.CTkLabel(filtros, text="Operador:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
-        self.operador_filter = ctk.CTkEntry(
-            filtros,
-            width=120,
-            placeholder_text="Buscar",
-        )
-        self.operador_filter.pack(side="left", padx=(0, 8), pady=10)
-        self.operador_filter.bind(
-            "<KeyRelease>", lambda _event: self.scripts._apply_filters()
-        )
-
-        ctk.CTkButton(
-            filtros,
-            text="Limpar",
-            width=80,
-            command=self.scripts._clear_filters,
-        ).pack(side="left", padx=8, pady=10)
-
-        self.counter_label = ctk.CTkLabel(filtros, text="0 devolução(ões)")
-        self.counter_label.pack(side="right", padx=10, pady=10)
-
+        filtros=ctk.CTkFrame(self); filtros.grid(row=1,column=0,sticky="ew",padx=20,pady=8)
+        ctk.CTkLabel(filtros,text="Setor:").pack(side="left",padx=(10,4),pady=10)
+        self.setor_filter=ctk.CTkOptionMenu(filtros,width=115,values=["TODOS"],command=lambda _v:self.scripts._apply_filters())
+        self.setor_filter.set("TODOS"); self.setor_filter.pack(side="left",padx=(0,8),pady=10)
+        ctk.CTkLabel(filtros,text="Data devolução:").pack(side="left",padx=(4,4),pady=10)
+        self.data_filter=ctk.CTkOptionMenu(filtros,width=125,values=["TODAS"],command=lambda _v:self.scripts._apply_filters())
+        self.data_filter.set("TODAS"); self.data_filter.pack(side="left",padx=(0,8),pady=10)
+        ctk.CTkLabel(filtros,text="Estoque:").pack(side="left",padx=(4,4),pady=10)
+        self.estoque_filter=ctk.CTkOptionMenu(filtros,width=105,values=["TODOS"],command=lambda _v:self.scripts._apply_filters())
+        self.estoque_filter.set("TODOS"); self.estoque_filter.pack(side="left",padx=(0,8),pady=10)
+        ctk.CTkLabel(filtros,text="Pesquisar:").pack(side="left",padx=(6,4),pady=10)
+        self.pesquisa_filter=ctk.CTkEntry(filtros,width=330,placeholder_text="Material, rastreabilidade, operador, observação...")
+        self.pesquisa_filter.pack(side="left",padx=(0,4),pady=10)
+        self.pesquisa_filter.bind("<KeyRelease>",lambda _e:self.scripts._apply_filters())
+        ctk.CTkButton(filtros,text="⌨",width=44,command=self.scripts.abrir_teclado_pesquisa).pack(side="left",padx=(0,6),pady=10)
+        ctk.CTkButton(filtros,text="Limpar",width=80,command=self.scripts._clear_filters).pack(side="left",padx=(0,8),pady=10)
+        self.counter_label=ctk.CTkLabel(filtros,text="0 devolução(ões)"); self.counter_label.pack(side="right",padx=10,pady=10)
     def _build_table(self) -> None:
         style = ttk.Style()
         style.configure(

@@ -141,6 +141,65 @@ class AlmoxRepository:
             "O Supabase não retornou o resultado da entrega mista.",
         )
 
+    def registrar_entrega_com_fabrica(
+        self,
+        item_requisicao_id: int,
+        quantidade_total,
+        lotes: list[dict[str, Any]],
+        nome_operador: str,
+        observacao: str | None = None,
+    ) -> dict[str, Any]:
+        qtd=self._normalizar_quantidade(quantidade_total,"Quantidade entregue inválida.")
+        lista=[]
+        for item in lotes:
+            q=self._normalizar_quantidade(item.get("quantidade"),"Quantidade de lote inválida.")
+            lista.append({"lote_id":int(item["lote_id"]),"quantidade":float(q)})
+        r=self.client.rpc("registrar_entrega_com_fabrica",{
+            "p_item_requisicao_id":int(item_requisicao_id),"p_quantidade_total":float(qtd),
+            "p_lotes":lista,"p_usuario":nome_operador.strip(),
+            "p_observacao":observacao.strip() if observacao else None}).execute()
+        return self._obter_resultado_rpc(r.data,"O Supabase não retornou a entrega com fábrica.")
+
+    def incluir_requisicao_manual(
+        self,
+        material: str,
+        quantidade,
+        nome_operador: str,
+        dimensao: str | None = None,
+        rastreabilidade: str | None = None,
+        localizacao_est: str = "EST",
+        setor_dest: str | None = None,
+        peso_bruto_kg=None,
+        peso_liquido_kg=None,
+    ) -> dict[str, Any]:
+        qtd=self._normalizar_quantidade(quantidade,"Quantidade inválida.")
+        def peso(v):
+            if v in (None,""): return None
+            return float(self._normalizar_quantidade_nao_negativa(v,"Peso inválido."))
+        r=self.client.rpc("incluir_requisicao_manual",{
+            "p_material":material.strip(),"p_quantidade":float(qtd),"p_usuario":nome_operador.strip(),
+            "p_dimensao":dimensao.strip() if dimensao else None,
+            "p_rastreabilidade":rastreabilidade.strip() if rastreabilidade else None,
+            "p_localizacao_est":(localizacao_est or "EST").strip(),
+            "p_setor_dest":setor_dest.strip() if setor_dest else None,
+            "p_peso_bruto_kg":peso(peso_bruto_kg),"p_peso_liquido_kg":peso(peso_liquido_kg),
+            "p_tipo_material":"MANUAL"}).execute()
+        return self._obter_resultado_rpc(r.data,"O Supabase não retornou a requisição manual.")
+
+    def incluir_material_fabrica_manual(
+        self,
+        material: str,
+        rastreabilidade: str,
+        quantidade,
+        nome_operador: str,
+        observacao: str | None = None,
+    ) -> dict[str, Any]:
+        qtd=self._normalizar_quantidade(quantidade,"Quantidade inválida.")
+        r=self.client.rpc("incluir_material_fabrica_manual",{
+            "p_material":material.strip(),"p_rastreabilidade":rastreabilidade.strip(),
+            "p_quantidade":float(qtd),"p_usuario":nome_operador.strip(),
+            "p_observacao":observacao.strip() if observacao else None}).execute()
+        return self._obter_resultado_rpc(r.data,"O Supabase não retornou o lote manual.")
     def listar_materiais_fabrica(self) -> list[dict[str, Any]]:
         response = (
             self.client.table("vw_materiais_fabrica")

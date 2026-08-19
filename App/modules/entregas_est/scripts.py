@@ -9,7 +9,10 @@ from typing import TYPE_CHECKING
 import customtkinter as ctk
 
 from modules._shared.almox_repository import AlmoxRepository
+from modules._shared.search_utils import corresponde_pesquisa
+from modules._shared.virtual_keyboard import abrir_teclado_virtual
 from modules.entregas_est.fabrica_dialog import JanelaUsoMaterialFabrica
+from modules.entregas_est.manual_dialog import JanelaRequisicaoManual
 
 if TYPE_CHECKING:
     from modules.entregas_est.view import View
@@ -64,43 +67,21 @@ class Scripts:
         )
 
     def _apply_filters(self) -> None:
-        setor = self.view.setor_filter.get().strip()
-        data = self.view.data_filter.get().strip()
-        estoque = self.view.estoque_filter.get().strip()
-        material = self.view.material_filter.get().strip().lower()
-        rastreabilidade = self.view.rastreabilidade_filter.get().strip().lower()
-
-        filtered: list[dict] = []
-
+        setor=self.view.setor_filter.get().strip()
+        data=self.view.data_filter.get().strip()
+        estoque=self.view.estoque_filter.get().strip()
+        pesquisa=self.view.pesquisa_filter.get().strip()
+        campos=("numero_requisicao","nome_arquivo_email","material","dimensao",
+                "rastreabilidade","setor_dest","localizacao_est","data_requisicao")
+        filtered=[]
         for row in self.all_rows:
-            if setor != "TODOS" and str(row.get("setor_dest") or "") != setor:
-                continue
-
-            if (
-                data != "TODAS"
-                and self._fmt_date(row.get("data_requisicao")) != data
-            ):
-                continue
-
-            if (
-                estoque != "TODOS"
-                and str(row.get("localizacao_est") or "") != estoque
-            ):
-                continue
-
-            if material and material not in str(row.get("material") or "").lower():
-                continue
-
-            if rastreabilidade and rastreabilidade not in str(
-                row.get("rastreabilidade") or ""
-            ).lower():
-                continue
-
+            if setor!="TODOS" and str(row.get("setor_dest") or "")!=setor: continue
+            if data!="TODAS" and self._fmt_date(row.get("data_requisicao"))!=data: continue
+            if estoque!="TODOS" and str(row.get("localizacao_est") or "")!=estoque: continue
+            if not corresponde_pesquisa(row,pesquisa,campos): continue
             filtered.append(row)
-
         self._fill_table(filtered)
         self.view.counter_label.configure(text=f"{len(filtered)} item(ns)")
-
     def _fill_table(self, data: list[dict]) -> None:
         selected_before = self.view.tree.selection()
         selected_id = selected_before[0] if selected_before else None
@@ -121,6 +102,7 @@ class Scripts:
                 iid=key,
                 values=(
                     self._fmt_request_datetime(row),
+                    self._numero_requisicao(row),
                     row.get("material") or "",
                     row.get("dimensao") or "",
                     self._fmt(row.get("quantidade_solicitada")),
@@ -248,10 +230,14 @@ class Scripts:
         self.view.setor_filter.set("TODOS")
         self.view.data_filter.set("TODAS")
         self.view.estoque_filter.set("TODOS")
-        self.view.material_filter.delete(0, "end")
-        self.view.rastreabilidade_filter.delete(0, "end")
+        self.view.pesquisa_filter.delete(0,"end")
         self._apply_filters()
-
+    def abrir_teclado_pesquisa(self) -> None:
+        abrir_teclado_virtual(self.view.pesquisa_filter)
+    def abrir_requisicao_manual(self) -> None:
+        if self.repository is None:
+            self.repository=AlmoxRepository()
+        JanelaRequisicaoManual(parent=self.view,repository=self.repository,on_success=self.refresh)
     def register_delivery(self) -> None:
         selected = self.view.tree.selection()
         if not selected:
@@ -373,6 +359,12 @@ class Scripts:
 
         return quantidade
 
+    @staticmethod
+    def _numero_requisicao(row: dict) -> str:
+        numero=str(row.get("numero_requisicao") or "").strip()
+        if numero: return numero
+        nome=str(row.get("nome_arquivo_email") or "").strip()
+        return nome if nome.upper().startswith("RM") else ""
     def _rolar_horizontal(self, event) -> str:
         direcao = -1 if event.delta > 0 else 1
         self.view.tree.xview_scroll(direcao, "units")

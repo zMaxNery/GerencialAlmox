@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 import customtkinter as ctk
 
 from modules._shared.almox_repository import AlmoxRepository
+from modules._shared.search_utils import corresponde_pesquisa
+from modules._shared.virtual_keyboard import abrir_teclado_virtual
 
 if TYPE_CHECKING:
     from modules.devolucoes_entrega.view import HistoricoDevolucoesView
@@ -52,46 +54,20 @@ class Scripts:
         self._set_option_values(self.histDevolucao.data_filter, ["TODAS", *datas], "TODAS")
 
     def _apply_filters(self) -> None:
-        setor = self.histDevolucao.setor_filter.get().strip()
-        data_devolucao = self.histDevolucao.data_filter.get().strip()
-        estoque = self.histDevolucao.estoque_filter.get().strip()
-        material = self.histDevolucao.material_filter.get().strip().lower()
-        rastreabilidade = self.histDevolucao.rastreabilidade_filter.get().strip().lower()
-        operador = self.histDevolucao.operador_filter.get().strip().lower()
-
-        filtrados: list[dict] = []
-
+        setor=self.histDevolucao.setor_filter.get().strip()
+        data=self.histDevolucao.data_filter.get().strip()
+        estoque=self.histDevolucao.estoque_filter.get().strip()
+        pesquisa=self.histDevolucao.pesquisa_filter.get().strip()
+        campos=("material","dimensao","rastreabilidade","localizacao_est","setor_dest",
+                "operador_devolucao","operador_entrega","observacao_devolucao","devolvido_em","data_requisicao")
+        rows=[]
         for row in self.all_rows:
-            if setor != "TODOS" and str(row.get("setor_dest") or "") != setor:
-                continue
-
-            if (
-                data_devolucao != "TODAS"
-                and self._fmt_data(row.get("devolvido_em")) != data_devolucao
-            ):
-                continue
-
-            if estoque != "TODOS" and str(row.get("localizacao_est") or "") != estoque:
-                continue
-
-            if material and material not in str(row.get("material") or "").lower():
-                continue
-
-            if rastreabilidade and rastreabilidade not in str(
-                row.get("rastreabilidade") or ""
-            ).lower():
-                continue
-
-            if operador and operador not in str(
-                row.get("operador_devolucao") or ""
-            ).lower():
-                continue
-
-            filtrados.append(row)
-
-        self._fill_table(filtrados)
-        self.histDevolucao.counter_label.configure(text=f"{len(filtrados)} devolução(ões)")
-
+            if setor!="TODOS" and str(row.get("setor_dest") or "")!=setor: continue
+            if data!="TODAS" and self._fmt_data(row.get("devolvido_em"))!=data: continue
+            if estoque!="TODOS" and str(row.get("localizacao_est") or "")!=estoque: continue
+            if not corresponde_pesquisa(row,pesquisa,campos): continue
+            rows.append(row)
+        self._fill_table(rows); self.histDevolucao.counter_label.configure(text=f"{len(rows)} devolução(ões)")
     def _fill_table(self, data: list[dict]) -> None:
         for item_id in self.histDevolucao.tree.get_children():
             self.histDevolucao.tree.delete(item_id)
@@ -120,14 +96,11 @@ class Scripts:
             )
 
     def _clear_filters(self) -> None:
-        self.histDevolucao.setor_filter.set("TODOS")
-        self.histDevolucao.data_filter.set("TODAS")
-        self.histDevolucao.estoque_filter.set("TODOS")
-        self.histDevolucao.material_filter.delete(0, "end")
-        self.histDevolucao.rastreabilidade_filter.delete(0, "end")
-        self.histDevolucao.operador_filter.delete(0, "end")
+        self.histDevolucao.setor_filter.set("TODOS"); self.histDevolucao.data_filter.set("TODAS")
+        self.histDevolucao.estoque_filter.set("TODOS"); self.histDevolucao.pesquisa_filter.delete(0,"end")
         self._apply_filters()
-
+    def abrir_teclado_pesquisa(self) -> None:
+        abrir_teclado_virtual(self.histDevolucao.pesquisa_filter)
     def _unique_values(self, field: str) -> list[str]:
         return sorted(
             {
