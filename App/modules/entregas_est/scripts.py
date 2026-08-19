@@ -94,15 +94,20 @@ class Scripts:
         for indice, row in enumerate(data):
             key = str(row["item_requisicao_id"])
             self.view.rows[key] = row
-            tag_linha = "linha_par" if indice % 2 == 0 else "linha_impar"
+            numero_requisicao = self._numero_requisicao(row)
 
+            manual = numero_requisicao.upper().startswith("RM")
+            if manual:
+                tag_linha = "manual_par" if indice % 2 == 0 else "manual_impar"
+            else:
+                tag_linha = "linha_par" if indice % 2 == 0 else "linha_impar"
+                
             self.view.tree.insert(
                 "",
                 "end",
                 iid=key,
                 values=(
                     self._fmt_request_datetime(row),
-                    self._numero_requisicao(row),
                     row.get("material") or "",
                     row.get("dimensao") or "",
                     self._fmt(row.get("quantidade_solicitada")),

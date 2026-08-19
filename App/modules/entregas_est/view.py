@@ -10,7 +10,6 @@ from modules.entregas_est.scripts import Scripts
 class View(ctk.CTkFrame):
     COLUMNS = (
         "requisitado_em",
-        "requisicao",
         "material",
         "dimensao",
         "solicitado",
@@ -243,10 +242,20 @@ class View(ctk.CTkFrame):
             background="#FFFFFF",
             foreground="#000000",
         )
+        # Requisições manuais (RM) recebem apenas um realce visual leve.
+        self.tree.tag_configure(
+            "manual_par",
+            background="#D8E8F5",
+            foreground="#000000",
+        )
+        self.tree.tag_configure(
+            "manual_impar",
+            background="#EAF3FA",
+            foreground="#000000",
+        )
 
         labels = {
             "requisitado_em": "Dt/Hr Req",
-            "requisicao": "Req.",
             "material": "Material",
             "dimensao": "Dimensão",
             "solicitado": "Solicitado",
@@ -258,7 +267,6 @@ class View(ctk.CTkFrame):
         }
         widths = {
             "requisitado_em": 150,
-            "requisicao": 90,
             "material": 290,
             "dimensao": 120,
             "solicitado": 110,

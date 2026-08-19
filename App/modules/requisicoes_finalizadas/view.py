@@ -9,6 +9,8 @@ from typing import Callable
 import customtkinter as ctk
 
 from modules._shared.almox_repository import AlmoxRepository
+from modules._shared.search_utils import corresponde_pesquisa
+from modules._shared.virtual_keyboard import abrir_teclado_virtual
 
 class JanelaDevolucao(ctk.CTkToplevel):
     def __init__(
@@ -516,78 +518,51 @@ class ResumoEntregasView(ctk.CTkFrame):
         filtros = ctk.CTkFrame(self)
         filtros.grid(row=1, column=0, sticky="ew", padx=20, pady=8)
 
-        ctk.CTkLabel(filtros, text="Setor:").pack(
-            side="left", padx=(10, 4), pady=10
-        )
+        ctk.CTkLabel(filtros, text="Setor:").pack(side="left", padx=(10, 4), pady=10)
         self.setor_filter = ctk.CTkOptionMenu(
-            filtros,
-            width=120,
-            values=["TODOS"],
+            filtros, width=120, values=["TODOS"],
             command=lambda _valor: self._apply_filters(),
         )
         self.setor_filter.set("TODOS")
         self.setor_filter.pack(side="left", padx=(0, 8), pady=10)
 
-        ctk.CTkLabel(filtros, text="Data entrega:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
+        ctk.CTkLabel(filtros, text="Data entrega:").pack(side="left", padx=(4, 4), pady=10)
         self.data_filter = ctk.CTkOptionMenu(
-            filtros,
-            width=125,
-            values=["TODAS"],
+            filtros, width=125, values=["TODAS"],
             command=lambda _valor: self._apply_filters(),
         )
         self.data_filter.set("TODAS")
         self.data_filter.pack(side="left", padx=(0, 8), pady=10)
 
-        ctk.CTkLabel(filtros, text="Estoque:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
+        ctk.CTkLabel(filtros, text="Estoque:").pack(side="left", padx=(4, 4), pady=10)
         self.estoque_filter = ctk.CTkOptionMenu(
-            filtros,
-            width=110,
-            values=["TODOS"],
+            filtros, width=110, values=["TODOS"],
             command=lambda _valor: self._apply_filters(),
         )
         self.estoque_filter.set("TODOS")
         self.estoque_filter.pack(side="left", padx=(0, 8), pady=10)
 
-        ctk.CTkLabel(filtros, text="Material:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
-        self.material_filter = ctk.CTkEntry(
+        ctk.CTkLabel(filtros, text="Pesquisar:").pack(side="left", padx=(6, 4), pady=10)
+        self.pesquisa_filter = ctk.CTkEntry(
             filtros,
-            width=145,
-            placeholder_text="Buscar",
+            width=330,
+            placeholder_text="Material, rastreabilidade, operador, observação...",
         )
-        self.material_filter.pack(side="left", padx=(0, 8), pady=10)
-        self.material_filter.bind(
-            "<KeyRelease>", lambda _event: self._apply_filters()
-        )
-
-        ctk.CTkLabel(filtros, text="Rastreabilidade:").pack(
-            side="left", padx=(4, 4), pady=10
-        )
-        self.rastreabilidade_filter = ctk.CTkEntry(
-            filtros,
-            width=145,
-            placeholder_text="Buscar",
-        )
-        self.rastreabilidade_filter.pack(side="left", padx=(0, 8), pady=10)
-        self.rastreabilidade_filter.bind(
-            "<KeyRelease>", lambda _event: self._apply_filters()
-        )
-
+        self.pesquisa_filter.pack(side="left", padx=(0, 4), pady=10)
+        self.pesquisa_filter.bind("<KeyRelease>", lambda _event: self._apply_filters())
         ctk.CTkButton(
             filtros,
-            text="Limpar filtros",
-            width=110,
-            command=self._clear_filters,
-        ).pack(side="left", padx=8, pady=10)
+            text="⌨",
+            width=44,
+            command=lambda: abrir_teclado_virtual(self.pesquisa_filter),
+        ).pack(side="left", padx=(0, 6), pady=10)
+
+        ctk.CTkButton(
+            filtros, text="Limpar", width=80, command=self._clear_filters
+        ).pack(side="left", padx=(0, 8), pady=10)
 
         self.counter_label = ctk.CTkLabel(filtros, text="0 entrega(s)")
         self.counter_label.pack(side="right", padx=10, pady=10)
-
     def _build_table(self) -> None:
         style = ttk.Style()
         style.configure(
@@ -744,37 +719,38 @@ class ResumoEntregasView(ctk.CTkFrame):
         setor = self.setor_filter.get().strip()
         data_entrega = self.data_filter.get().strip()
         estoque = self.estoque_filter.get().strip()
-        material = self.material_filter.get().strip().lower()
-        rastreabilidade = self.rastreabilidade_filter.get().strip().lower()
+        pesquisa = self.pesquisa_filter.get().strip()
+        campos = (
+            "numero_requisicao",
+            "material",
+            "dimensao",
+            "rastreabilidade",
+            "localizacao_est",
+            "setor_dest",
+            "usuario",
+            "observacao",
+            "origem_entrega",
+            "entregue_em",
+            "data_requisicao",
+        )
 
         filtrados: list[dict] = []
-
         for row in self.all_rows:
             if setor != "TODOS" and str(row.get("setor_dest") or "") != setor:
                 continue
-
             if (
                 data_entrega != "TODAS"
                 and self._fmt_data(row.get("entregue_em")) != data_entrega
             ):
                 continue
-
             if estoque != "TODOS" and str(row.get("localizacao_est") or "") != estoque:
                 continue
-
-            if material and material not in str(row.get("material") or "").lower():
+            if not corresponde_pesquisa(row, pesquisa, campos):
                 continue
-
-            if rastreabilidade and rastreabilidade not in str(
-                row.get("rastreabilidade") or ""
-            ).lower():
-                continue
-
             filtrados.append(row)
 
         self._fill_table(filtrados)
         self.counter_label.configure(text=f"{len(filtrados)} entrega(s)")
-
     def _fill_table(self, data: list[dict]) -> None:
         self.rows.clear()
 
@@ -871,10 +847,8 @@ class ResumoEntregasView(ctk.CTkFrame):
         self.setor_filter.set("TODOS")
         self.data_filter.set("TODAS")
         self.estoque_filter.set("TODOS")
-        self.material_filter.delete(0, "end")
-        self.rastreabilidade_filter.delete(0, "end")
+        self.pesquisa_filter.delete(0, "end")
         self._apply_filters()
-
     def _unique_values(self, field: str) -> list[str]:
         return sorted(
             {

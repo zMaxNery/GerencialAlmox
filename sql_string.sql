@@ -1674,15 +1674,17 @@ declare
     v_quantidade_lote numeric(14, 3);
     v_disponivel_lote numeric(14, 3);
     v_material_lote text;
+    v_rastreabilidade_lote text;
     v_quantidade_fabrica numeric(14, 3) := 0;
     v_quantidade_nova numeric(14, 3) := 0;
     v_apontamento_fabrica_id bigint;
     v_apontamento_novo_id bigint;
+    v_detalhes_fabrica text := '';
+    v_observacao_fabrica text;
 begin
     if p_quantidade_total is null or p_quantidade_total <= 0 then
         raise exception 'A quantidade entregue deve ser maior que zero.';
     end if;
-
     if nullif(btrim(p_usuario), '') is null then
         raise exception 'Informe o usuário responsável.';
     end if;
@@ -1690,7 +1692,6 @@ begin
     if p_lotes is null or jsonb_typeof(p_lotes) <> 'array' then
         raise exception 'A seleção de lotes da fábrica é inválida.';
     end if;
-
     if exists (
         select 1
         from (
@@ -1728,13 +1729,14 @@ begin
     if v_quantidade_restante <= 0 then
         raise exception 'A requisição já está totalmente atendida.';
     end if;
-
     if p_quantidade_total > v_quantidade_restante then
         raise exception
             'Para usar material da fábrica, a quantidade (%) não pode ser maior que o restante da requisição (%).',
             p_quantidade_total, v_quantidade_restante;
     end if;
 
+    -- Valida e bloqueia explicitamente todos os lotes escolhidos pelo operador.
+    -- Neste momento também montamos a observação que ficará no histórico.
     for v_item in
         select value from jsonb_array_elements(p_lotes)
     loop
@@ -1747,8 +1749,14 @@ begin
             raise exception 'Há um lote ou quantidade inválida na seleção da fábrica.';
         end if;
 
-        select lmf.quantidade_disponivel, lmf.material
-        into v_disponivel_lote, v_material_lote
+        select
+            lmf.quantidade_disponivel,
+            lmf.material,
+            lmf.rastreabilidade
+        into
+            v_disponivel_lote,
+            v_material_lote,
+            v_rastreabilidade_lote
         from public.lotes_materiais_fabrica lmf
         where lmf.id = v_lote_id
         for update;
@@ -1761,7 +1769,6 @@ begin
            <> public.fn_chave_material(v_material) then
             raise exception 'O lote % pertence a outro material.', v_lote_id;
         end if;
-
         if v_quantidade_lote > v_disponivel_lote then
             raise exception
                 'Saldo insuficiente no lote %. Disponível: %.',
@@ -1769,16 +1776,28 @@ begin
         end if;
 
         v_quantidade_fabrica := v_quantidade_fabrica + v_quantidade_lote;
+
+        if v_detalhes_fabrica <> '' then
+            v_detalhes_fabrica := v_detalhes_fabrica || '; ';
+        end if;
+        v_detalhes_fabrica := v_detalhes_fabrica
+            || coalesce(nullif(btrim(v_rastreabilidade_lote), ''), 'SEM RASTREABILIDADE')
+            || ': '
+            || to_char(v_quantidade_lote, 'FM999999990.###');
     end loop;
 
     if v_quantidade_fabrica <= 0 then
         raise exception 'Selecione ao menos um lote da fábrica.';
     end if;
-
     if v_quantidade_fabrica > p_quantidade_total then
         raise exception
             'O total selecionado na fábrica (%) é maior que a quantidade da entrega (%).',
             v_quantidade_fabrica, p_quantidade_total;
+    end if;
+
+    v_observacao_fabrica := 'Usado da fábrica | Rastreabilidade(s): ' || v_detalhes_fabrica;
+    if nullif(btrim(p_observacao), '') is not null then
+        v_observacao_fabrica := v_observacao_fabrica || ' | ' || btrim(p_observacao);
     end if;
 
     v_quantidade_nova := p_quantidade_total - v_quantidade_fabrica;
@@ -1789,7 +1808,7 @@ begin
     )
     values (
         p_item_requisicao_id, v_quantidade_fabrica, 0,
-        'FABRICA', btrim(p_usuario), nullif(btrim(p_observacao), '')
+        'FABRICA', btrim(p_usuario), v_observacao_fabrica
     )
     returning id into v_apontamento_fabrica_id;
 
@@ -1813,6 +1832,9 @@ begin
         );
     end loop;
 
+    -- A parcela complementada pelo almoxarifado continua como um apontamento
+    -- NOVO separado. A observação automática de fábrica fica somente no
+    -- apontamento FABRICA, evitando afirmar que a parcela NOVA veio de fábrica.
     if v_quantidade_nova > 0 then
         insert into public.apontamentos_entrega (
             item_requisicao_id, quantidade_entregue, quantidade_excedente,
@@ -2197,12 +2219,23 @@ select
     lmf.origem_lote,
     lmf.observacao_origem,
     lmf.recebido_em,
+
+    ir_origem.numero_requisicao as numero_requisicao_origem,
+    ir_origem.data_requisicao as data_requisicao_origem,
+    ie_origem.recebido_em as recebido_em_requisicao_origem,
+
     lmf.material,
     lmf.rastreabilidade,
     lmf.quantidade_inicial,
     lmf.quantidade_disponivel,
     lmf.usuario
 from public.lotes_materiais_fabrica lmf
+left join public.apontamentos_entrega ae_origem
+  on ae_origem.id = lmf.apontamento_origem_id
+left join public.itens_requisicao ir_origem
+  on ir_origem.id = ae_origem.item_requisicao_id
+left join public.emails_importados ie_origem
+  on ie_origem.id = ir_origem.email_importado_id
 where lmf.quantidade_disponivel > 0;
 
 -- ============================================================================
