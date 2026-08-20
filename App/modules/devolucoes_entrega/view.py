@@ -52,23 +52,77 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         ).pack(side="right")
 
     def _build_filters(self) -> None:
-        filtros=ctk.CTkFrame(self); filtros.grid(row=1,column=0,sticky="ew",padx=20,pady=8)
-        ctk.CTkLabel(filtros,text="Setor:").pack(side="left",padx=(10,4),pady=10)
-        self.setor_filter=ctk.CTkOptionMenu(filtros,width=115,values=["TODOS"],command=lambda _v:self.scripts._apply_filters())
-        self.setor_filter.set("TODOS"); self.setor_filter.pack(side="left",padx=(0,8),pady=10)
-        ctk.CTkLabel(filtros,text="Data devolução:").pack(side="left",padx=(4,4),pady=10)
-        self.data_filter=ctk.CTkOptionMenu(filtros,width=125,values=["TODAS"],command=lambda _v:self.scripts._apply_filters())
-        self.data_filter.set("TODAS"); self.data_filter.pack(side="left",padx=(0,8),pady=10)
-        ctk.CTkLabel(filtros,text="Estoque:").pack(side="left",padx=(4,4),pady=10)
-        self.estoque_filter=ctk.CTkOptionMenu(filtros,width=105,values=["TODOS"],command=lambda _v:self.scripts._apply_filters())
-        self.estoque_filter.set("TODOS"); self.estoque_filter.pack(side="left",padx=(0,8),pady=10)
-        ctk.CTkLabel(filtros,text="Pesquisar:").pack(side="left",padx=(6,4),pady=10)
-        self.pesquisa_filter=ctk.CTkEntry(filtros,width=330,placeholder_text="Material, rastreabilidade, operador, observação...")
-        self.pesquisa_filter.pack(side="left",padx=(0,4),pady=10)
-        self.pesquisa_filter.bind("<KeyRelease>",lambda _e:self.scripts._apply_filters())
-        ctk.CTkButton(filtros,text="⌨",width=44,command=self.scripts.abrir_teclado_pesquisa).pack(side="left",padx=(0,6),pady=10)
-        ctk.CTkButton(filtros,text="Limpar",width=80,command=self.scripts._clear_filters).pack(side="left",padx=(0,8),pady=10)
-        self.counter_label=ctk.CTkLabel(filtros,text="0 devolução(ões)"); self.counter_label.pack(side="right",padx=10,pady=10)
+        filtros = ctk.CTkFrame(self)
+        filtros.grid(row=1, column=0, sticky="ew", padx=20, pady=8)
+
+        ctk.CTkLabel(filtros, text="Setor:").pack(
+            side="left", padx=(10, 4), pady=10
+        )
+        self.setor_filter = ctk.CTkOptionMenu(
+            filtros,
+            width=115,
+            values=["TODOS"],
+            command=lambda _v: self.scripts._apply_filters(),
+        )
+        self.setor_filter.set("TODOS")
+        self.setor_filter.pack(side="left", padx=(0, 8), pady=10)
+
+        ctk.CTkLabel(filtros, text="Data evento:").pack(
+            side="left", padx=(4, 4), pady=10
+        )
+        self.data_filter = ctk.CTkOptionMenu(
+            filtros,
+            width=125,
+            values=["TODAS"],
+            command=lambda _v: self.scripts._apply_filters(),
+        )
+        self.data_filter.set("TODAS")
+        self.data_filter.pack(side="left", padx=(0, 8), pady=10)
+
+        ctk.CTkLabel(filtros, text="Estoque:").pack(
+            side="left", padx=(4, 4), pady=10
+        )
+        self.estoque_filter = ctk.CTkOptionMenu(
+            filtros,
+            width=105,
+            values=["TODOS"],
+            command=lambda _v: self.scripts._apply_filters(),
+        )
+        self.estoque_filter.set("TODOS")
+        self.estoque_filter.pack(side="left", padx=(0, 8), pady=10)
+
+        ctk.CTkLabel(filtros, text="Pesquisar:").pack(
+            side="left", padx=(6, 4), pady=10
+        )
+        self.pesquisa_filter = ctk.CTkEntry(
+            filtros,
+            width=330,
+            placeholder_text=(
+                "Requisição, material, rastreabilidade, operador, observação..."
+            ),
+        )
+        self.pesquisa_filter.pack(side="left", padx=(0, 4), pady=10)
+        self.pesquisa_filter.bind(
+            "<KeyRelease>", lambda _e: self.scripts._apply_filters()
+        )
+
+        ctk.CTkButton(
+            filtros,
+            text="⌨",
+            width=44,
+            command=self.scripts.abrir_teclado_pesquisa,
+        ).pack(side="left", padx=(0, 6), pady=10)
+
+        ctk.CTkButton(
+            filtros,
+            text="Limpar",
+            width=80,
+            command=self.scripts._clear_filters,
+        ).pack(side="left", padx=(0, 8), pady=10)
+
+        self.counter_label = ctk.CTkLabel(filtros, text="0 registro(s)")
+        self.counter_label.pack(side="right", padx=10, pady=10)
+
     def _build_table(self) -> None:
         style = ttk.Style()
         style.configure(
@@ -99,9 +153,17 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
         self.tree.tag_configure(
             "linha_impar", background="#FFFFFF", foreground="#000000"
         )
+        # Exclusões ficam com um tom vermelho muito leve apenas para distinguir
+        # o evento sem prejudicar a leitura da tabela.
+        self.tree.tag_configure(
+            "exclusao_par", background="#F4D8D8", foreground="#000000"
+        )
+        self.tree.tag_configure(
+            "exclusao_impar", background="#FBEAEA", foreground="#000000"
+        )
 
         labels = {
-            "devolvido_em": "Dt/Hr Dev",
+            "devolvido_em": "Dt/Hr Evento",
             "requisitado_em": "Dt/Hr Req",
             "material": "Material",
             "dimensao": "Dimensão",
@@ -124,7 +186,7 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
             "estoque": 110,
             "setor_dest": 110,
             "operador": 150,
-            "observacao": 230,
+            "observacao": 260,
         }
 
         for column in self.COLUMNS:
@@ -137,7 +199,10 @@ class HistoricoDevolucoesView(ctk.CTkFrame):
 
         y_scroll = ttk.Scrollbar(container, orient="vertical", command=self.tree.yview)
         x_scroll = ttk.Scrollbar(container, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
+        self.tree.configure(
+            yscrollcommand=y_scroll.set,
+            xscrollcommand=x_scroll.set,
+        )
 
         self.tree.grid(row=0, column=0, sticky="nsew")
         y_scroll.grid(row=0, column=1, sticky="ns")

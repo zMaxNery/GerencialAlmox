@@ -237,6 +237,51 @@ class AlmoxRepository:
             "O Supabase não retornou o resultado do ajuste.",
         )
 
+    def excluir_requisicao(
+        self,
+        item_requisicao_id: int,
+        nome_operador: str,
+    ) -> dict[str, Any]:
+        operador = nome_operador.strip()
+        if not operador:
+            raise ValueError("Informe o usuário responsável pela exclusão.")
+        response = self.client.rpc(
+            "excluir_requisicao",
+            {
+                "p_item_requisicao_id": int(item_requisicao_id),
+                "p_usuario": operador,
+            },
+        ).execute()
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da exclusão.",
+        )
+
+    def devolver_material_lote_fabrica(
+        self,
+        consumo_material_fabrica_id: int,
+        quantidade: Decimal | str | float,
+        nome_operador: str,
+        observacao: str | None = None,
+    ) -> dict[str, Any]:
+        quantidade_normalizada = self._normalizar_quantidade(
+            quantidade,
+            "Quantidade devolvida inválida.",
+        )
+        response = self.client.rpc(
+            "devolver_material_lote_fabrica",
+            {
+                "p_consumo_material_fabrica_id": int(consumo_material_fabrica_id),
+                "p_quantidade": float(quantidade_normalizada),
+                "p_usuario": nome_operador.strip(),
+                "p_observacao": observacao.strip() if observacao else None,
+            },
+        ).execute()
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da devolução do lote.",
+        )
+
     def listar_historico_entregas(self) -> list[dict[str, Any]]:
         response = (
             self.client.table("vw_historico_entregas")

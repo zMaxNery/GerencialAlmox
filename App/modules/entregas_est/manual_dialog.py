@@ -160,7 +160,7 @@ class JanelaRequisicaoManual(ctk.CTkToplevel):
             messagebox.showerror("Requisição manual", str(exc), parent=self)
             return
 
-        numero = resultado.get("numero_requisicao") or "RM"
+        numero = resultado.get("numero_requisicao") or "RMP"
         messagebox.showinfo(
             "Requisição manual",
             f"Requisição {numero} cadastrada com sucesso.",

@@ -27,7 +27,6 @@ class Scripts:
                 self.repository = AlmoxRepository()
 
             self.all_rows = self.repository.listar_historico_devolucoes()
-
         except Exception as exc:
             messagebox.showerror("Histórico de devoluções", str(exc))
             return
@@ -47,45 +46,106 @@ class Scripts:
             reverse=True,
         )
 
-        self._set_option_values(self.histDevolucao.setor_filter, ["TODOS", *setores], "TODOS")
         self._set_option_values(
-            self.histDevolucao.estoque_filter, ["TODOS", *estoques], "TODOS"
+            self.histDevolucao.setor_filter,
+            ["TODOS", *setores],
+            "TODOS",
         )
-        self._set_option_values(self.histDevolucao.data_filter, ["TODAS", *datas], "TODAS")
+        self._set_option_values(
+            self.histDevolucao.estoque_filter,
+            ["TODOS", *estoques],
+            "TODOS",
+        )
+        self._set_option_values(
+            self.histDevolucao.data_filter,
+            ["TODAS", *datas],
+            "TODAS",
+        )
 
     def _apply_filters(self) -> None:
-        setor=self.histDevolucao.setor_filter.get().strip()
-        data=self.histDevolucao.data_filter.get().strip()
-        estoque=self.histDevolucao.estoque_filter.get().strip()
-        pesquisa=self.histDevolucao.pesquisa_filter.get().strip()
-        campos=("material","dimensao","rastreabilidade","localizacao_est","setor_dest",
-                "operador_devolucao","operador_entrega","observacao_devolucao","devolvido_em","data_requisicao")
-        rows=[]
+        setor = self.histDevolucao.setor_filter.get().strip()
+        data = self.histDevolucao.data_filter.get().strip()
+        estoque = self.histDevolucao.estoque_filter.get().strip()
+        pesquisa = self.histDevolucao.pesquisa_filter.get().strip()
+
+        campos = (
+            "numero_requisicao",
+            "tipo_evento",
+            "material",
+            "dimensao",
+            "rastreabilidade",
+            "localizacao_est",
+            "setor_dest",
+            "operador_devolucao",
+            "operador_entrega",
+            "observacao_devolucao",
+            "devolvido_em",
+            "data_requisicao",
+        )
+
+        rows: list[dict] = []
         for row in self.all_rows:
-            if setor!="TODOS" and str(row.get("setor_dest") or "")!=setor: continue
-            if data!="TODAS" and self._fmt_data(row.get("devolvido_em"))!=data: continue
-            if estoque!="TODOS" and str(row.get("localizacao_est") or "")!=estoque: continue
-            if not corresponde_pesquisa(row,pesquisa,campos): continue
+            if setor != "TODOS" and str(row.get("setor_dest") or "") != setor:
+                continue
+            if (
+                data != "TODAS"
+                and self._fmt_data(row.get("devolvido_em")) != data
+            ):
+                continue
+            if (
+                estoque != "TODOS"
+                and str(row.get("localizacao_est") or "") != estoque
+            ):
+                continue
+            if not corresponde_pesquisa(row, pesquisa, campos):
+                continue
             rows.append(row)
-        self._fill_table(rows); self.histDevolucao.counter_label.configure(text=f"{len(rows)} devolução(ões)")
+
+        self._fill_table(rows)
+        self.histDevolucao.counter_label.configure(
+            text=f"{len(rows)} registro(s)"
+        )
+
     def _fill_table(self, data: list[dict]) -> None:
         for item_id in self.histDevolucao.tree.get_children():
             self.histDevolucao.tree.delete(item_id)
 
         for indice, row in enumerate(data):
-            tag = "linha_par" if indice % 2 == 0 else "linha_impar"
+            tipo_evento = str(row.get("tipo_evento") or "DEVOLUCAO").upper()
+            eh_exclusao = tipo_evento == "EXCLUSAO"
+
+            if eh_exclusao:
+                tag = "exclusao_par" if indice % 2 == 0 else "exclusao_impar"
+            else:
+                tag = "linha_par" if indice % 2 == 0 else "linha_impar"
+
+            # Prefixar o iid pelo tipo de evento evita qualquer colisão entre
+            # IDs de devolução e IDs de exclusão.
+            registro_id = row.get("devolucao_id")
+            iid = f"{tipo_evento}:{registro_id}"
+
+            quantidade_referencia = (
+                ""
+                if eh_exclusao
+                else self._fmt(row.get("quantidade_entregue_original"))
+            )
+            quantidade_devolvida = (
+                ""
+                if eh_exclusao
+                else self._fmt(row.get("quantidade_devolvida"))
+            )
 
             self.histDevolucao.tree.insert(
                 "",
                 "end",
-                iid=str(row["devolucao_id"]),
+                iid=iid,
                 values=(
                     self._fmt_data_hora(row.get("devolvido_em")),
                     self._fmt_request_datetime(row),
                     row.get("material") or "",
                     row.get("dimensao") or "",
-                    self._fmt(row.get("quantidade_entregue_original")),
-                    self._fmt(row.get("quantidade_devolvida")),
+                    quantidade_referencia,
+                    quantidade_devolvida,
                     row.get("rastreabilidade") or "",
                     row.get("localizacao_est") or "",
                     row.get("setor_dest") or "",
@@ -96,11 +156,15 @@ class Scripts:
             )
 
     def _clear_filters(self) -> None:
-        self.histDevolucao.setor_filter.set("TODOS"); self.histDevolucao.data_filter.set("TODAS")
-        self.histDevolucao.estoque_filter.set("TODOS"); self.histDevolucao.pesquisa_filter.delete(0,"end")
+        self.histDevolucao.setor_filter.set("TODOS")
+        self.histDevolucao.data_filter.set("TODAS")
+        self.histDevolucao.estoque_filter.set("TODOS")
+        self.histDevolucao.pesquisa_filter.delete(0, "end")
         self._apply_filters()
+
     def abrir_teclado_pesquisa(self) -> None:
         abrir_teclado_virtual(self.histDevolucao.pesquisa_filter)
+
     def _unique_values(self, field: str) -> list[str]:
         return sorted(
             {
@@ -128,7 +192,6 @@ class Scripts:
             return None
 
         texto = str(value).strip().replace("Z", "+00:00")
-
         try:
             data_hora = datetime.fromisoformat(texto)
         except ValueError:
@@ -156,7 +219,6 @@ class Scripts:
             return f"{data} {hora}"
         if data:
             return data
-
         return cls._fmt_data_hora(row.get("recebido_em_email"))
 
     @classmethod

@@ -47,6 +47,13 @@ class View(ctk.CTkFrame):
                       command=self.scripts.refresh).pack(side="right")
         ctk.CTkButton(header, text="+ Requisição manual",
                       command=self.scripts.abrir_requisicao_manual).pack(side="right", padx=(0, 10))
+        ctk.CTkButton(
+            header,
+            text="Excluir requisição",
+            fg_color="#B3261E",
+            hover_color="#8F1D18",
+            command=self.scripts.excluir_requisicao_selecionada,
+        ).pack(side="right", padx=(0, 10))
     def _build_filters(self) -> None:
         filtros = ctk.CTkFrame(self)
         filtros.grid(row=1, column=0, sticky="ew", padx=20, pady=8)

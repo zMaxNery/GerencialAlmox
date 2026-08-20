@@ -403,14 +403,23 @@ class JanelaDevolucao(ctk.CTkToplevel):
             return
 
         try:
-            resultado = self.repository.devolver_material(
-                apontamento_entrega_id=int(
-                    self.row["apontamento_entrega_id"]
-                ),
-                quantidade=quantidade,
-                nome_operador=getpass.getuser(),
-                observacao=observacao,
-            )
+            consumo_id = self.row.get("consumo_material_fabrica_id")
+            if consumo_id:
+                resultado = self.repository.devolver_material_lote_fabrica(
+                    consumo_material_fabrica_id=int(consumo_id),
+                    quantidade=quantidade,
+                    nome_operador=getpass.getuser(),
+                    observacao=observacao,
+                )
+            else:
+                resultado = self.repository.devolver_material(
+                    apontamento_entrega_id=int(
+                        self.row["apontamento_entrega_id"]
+                    ),
+                    quantidade=quantidade,
+                    nome_operador=getpass.getuser(),
+                    observacao=observacao,
+                )
 
         except Exception as exc:
             messagebox.showerror(
@@ -758,7 +767,7 @@ class ResumoEntregasView(ctk.CTkFrame):
             self.tree.delete(item_id)
 
         for indice, row in enumerate(data):
-            key = str(row["apontamento_entrega_id"])
+            key = str(row.get("historico_entrega_id") or row["apontamento_entrega_id"])
             self.rows[key] = row
 
             tag = "linha_par" if indice % 2 == 0 else "linha_impar"
@@ -818,12 +827,21 @@ class ResumoEntregasView(ctk.CTkFrame):
             if self.repository is None:
                 self.repository = AlmoxRepository()
 
-            self.repository.devolver_material(
-                apontamento_entrega_id=int(row["apontamento_entrega_id"]),
-                quantidade=quantidade,
-                nome_operador=getpass.getuser(),
-                observacao=observacao,
-            )
+            consumo_id = row.get("consumo_material_fabrica_id")
+            if consumo_id:
+                self.repository.devolver_material_lote_fabrica(
+                    consumo_material_fabrica_id=int(consumo_id),
+                    quantidade=quantidade,
+                    nome_operador=getpass.getuser(),
+                    observacao=observacao,
+                )
+            else:
+                self.repository.devolver_material(
+                    apontamento_entrega_id=int(row["apontamento_entrega_id"]),
+                    quantidade=quantidade,
+                    nome_operador=getpass.getuser(),
+                    observacao=observacao,
+                )
 
         except Exception as exc:
             messagebox.showerror(

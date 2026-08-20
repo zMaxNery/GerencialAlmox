@@ -52,6 +52,7 @@ class JanelaInclusaoManualFabrica(ctk.CTkToplevel):
         ctk.CTkLabel(form, text="Observação:").grid(row=3, column=0, sticky="nw", padx=(12, 8), pady=8)
         self.observacao_entry = ctk.CTkTextbox(form, height=100)
         self.observacao_entry.grid(row=3, column=1, columnspan=2, sticky="ew", padx=(0, 12), pady=8)
+        self.observacao_entry.insert("1.0", "Inclusão manual")
 
         ctk.CTkLabel(form, text="Operador:").grid(row=4, column=0, sticky="w", padx=(12, 8), pady=8)
         ctk.CTkLabel(form, text=getpass.getuser(), anchor="w", font=ctk.CTkFont(weight="bold")).grid(

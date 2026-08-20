@@ -239,6 +239,69 @@ class Scripts:
         self._apply_filters()
     def abrir_teclado_pesquisa(self) -> None:
         abrir_teclado_virtual(self.view.pesquisa_filter)
+    def excluir_requisicao_selecionada(self) -> None:
+        selecionados = self.view.tree.selection()
+        if not selecionados:
+            messagebox.showinfo(
+                "Excluir requisição",
+                "Selecione uma requisição na tabela.",
+            )
+            return
+
+        row = self.view.rows.get(selecionados[0])
+        if not row:
+            self.refresh()
+            return
+
+        numero = str(row.get("numero_requisicao") or "").strip()
+        material = str(row.get("material") or "").strip()
+        identificacao = numero or f"Item {row.get('item_requisicao_id', '')}"
+
+        primeira = messagebox.askyesno(
+            "Excluir requisição",
+            (
+                f"Deseja excluir esta requisição?\n\n"
+                f"Material: {material}\n\n"
+            ),
+        )
+        if not primeira:
+            return
+
+        segunda = messagebox.askyesno(
+            "CONFIRMAÇÃO FINAL",
+            (
+                "Confirme novamente a exclusão.\n\n"
+                f"Material: {material}\n\n"
+                "Esta ação é irreversível!"
+            ),
+            icon="warning",
+        )
+        if not segunda:
+            return
+
+        if self.repository is None:
+            self.repository = AlmoxRepository()
+
+        try:
+            resultado = self.repository.excluir_requisicao(
+                item_requisicao_id=int(row["item_requisicao_id"]),
+                nome_operador=getpass.getuser(),
+            )
+        except Exception as exc:
+            messagebox.showerror("Excluir requisição", str(exc))
+            self.refresh()
+            return
+
+        observacao = str(resultado.get("observacao") or "").strip()
+        messagebox.showinfo(
+            "Excluir requisição",
+            "Requisição excluída e registrada."
+            + (f"\n\n{observacao}" if observacao else ""),
+        )
+        self.view.quantidade_var.set("")
+        self.view.fabrica_label.grid_remove()
+        self.refresh()
+
     def abrir_requisicao_manual(self) -> None:
         if self.repository is None:
             self.repository=AlmoxRepository()

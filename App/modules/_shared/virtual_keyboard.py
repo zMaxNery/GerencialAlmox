@@ -23,7 +23,6 @@ class TecladoVirtual(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self._fechar)
 
     def _widget_nativo(self):
-        """Retorna o Entry/Text interno do CustomTkinter quando disponível."""
         return (
             getattr(self.widget, "_entry", None)
             or getattr(self.widget, "_textbox", None)
@@ -33,11 +32,6 @@ class TecladoVirtual(ctk.CTkToplevel):
     def _build(self) -> None:
         topo = ctk.CTkFrame(self, fg_color="transparent")
         topo.grid(row=0, column=0, sticky="ew", padx=14, pady=(12, 6))
-        ctk.CTkLabel(
-            topo,
-            text="Teclado virtual",
-            font=ctk.CTkFont(size=20, weight="bold"),
-        ).pack(side="left")
         ctk.CTkButton(
             topo,
             text="Fechar",
