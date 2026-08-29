@@ -10,7 +10,7 @@ from pathlib import Path
 import extract_msg
 from bs4 import BeautifulSoup
 
-from modules.importador_emails.models import (
+from modules.importador_requisicoes.models import (
     EmailProcessado,
     ItemRequisicao,
     ItemResumoTotvs,

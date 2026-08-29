@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from modules._shared.almox_repository import AlmoxRepository
 
 if TYPE_CHECKING:
-    from modules.lancamentos_baixa_totvs.view import View
+    from modules.aponta_baixa_totvs.view import View
 
 
 class Scripts:

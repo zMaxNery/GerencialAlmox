@@ -12,7 +12,7 @@ from modules._shared.search_utils import corresponde_pesquisa
 from modules._shared.virtual_keyboard import abrir_teclado_virtual
 
 if TYPE_CHECKING:
-    from modules.devolucoes_entrega.view import HistoricoDevolucoesView
+    from modules.requisicoes_devolvidas.view import HistoricoDevolucoesView
 
 
 class Scripts:

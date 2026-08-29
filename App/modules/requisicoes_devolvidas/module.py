@@ -1,4 +1,4 @@
-from modules.devolucoes_entrega.view import HistoricoDevolucoesView
+from modules.requisicoes_devolvidas.view import HistoricoDevolucoesView
 
 NOME = "Histórico Devoluções"
 ORDEM = 5

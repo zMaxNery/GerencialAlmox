@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import customtkinter as ctk
 
-from modules.devolucoes_entrega.scripts import Scripts
+from modules.requisicoes_devolvidas.scripts import Scripts
 
 
 class HistoricoDevolucoesView(ctk.CTkFrame):

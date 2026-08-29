@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import customtkinter as ctk
 
-from modules.entregas_est.scripts import Scripts
+from modules.requisicoes_pendentes.scripts import Scripts
 
 
 class View(ctk.CTkFrame):
@@ -17,7 +17,8 @@ class View(ctk.CTkFrame):
         "falta",
         "rastreabilidade",
         "setor_dest",
-        "estoque",
+        "maquina",
+        # "estoque",
     )
 
     def __init__(self, parent):
@@ -71,7 +72,7 @@ class View(ctk.CTkFrame):
         self.estoque_filter.set("TODOS"); self.estoque_filter.pack(side="left",padx=(0,8),pady=10)
         ctk.CTkLabel(filtros,text="Pesquisar:").pack(side="left",padx=(6,4),pady=10)
         self.pesquisa_filter=ctk.CTkEntry(filtros,width=300,
-            placeholder_text="Material, rastreabilidade, setor, RM...")
+            placeholder_text="Produto, Rastreabilidade, Setor...")
         self.pesquisa_filter.pack(side="left",padx=(0,4),pady=10)
         self.pesquisa_filter.bind("<KeyRelease>",lambda _e:self.scripts._apply_filters())
         ctk.CTkButton(filtros,text="⌨",width=44,
@@ -122,7 +123,7 @@ class View(ctk.CTkFrame):
 
         ctk.CTkLabel(
             painel,
-            text="Quantidade entregue",
+            text="Quantidade a entregar",
             font=ctk.CTkFont(size=14, weight="bold"),
         ).grid(
             row=3,
@@ -249,7 +250,7 @@ class View(ctk.CTkFrame):
             background="#FFFFFF",
             foreground="#000000",
         )
-        # Requisições manuais (RM) recebem apenas um realce visual leve.
+        # Requisições manuais recebem apenas um realce visual leve.
         self.tree.tag_configure(
             "manual_par",
             background="#D8E8F5",
@@ -264,24 +265,26 @@ class View(ctk.CTkFrame):
         labels = {
             "requisitado_em": "Dt/Hr Req",
             "material": "Material",
-            "dimensao": "Dimensão",
-            "solicitado": "Solicitado",
-            "entregue": "Entregue",
+            "dimensao": "Dimen",
+            "solicitado": "Solic",
+            "entregue": "Entr",
             "falta": "Falta",
-            "rastreabilidade": "Rastreabilidade",
+            "rastreabilidade": "Ratreabl",
             "setor_dest": "Setor",
-            "estoque": "Estoque",
+            "maquina": "Maquina",
+            # "estoque": "Estoque",
         }
         widths = {
-            "requisitado_em": 150,
-            "material": 290,
-            "dimensao": 120,
-            "solicitado": 110,
-            "entregue": 110,
-            "falta": 70,
-            "rastreabilidade": 180,
+            "requisitado_em": 160,
+            "material": 210,
+            "dimensao": 100,
+            "solicitado": 60,
+            "entregue": 60,
+            "falta": 60,
+            "rastreabilidade": 150,
             "setor_dest": 110,
-            "estoque": 110,
+            "maquina": 140,
+            # "estoque": 110,
         }
 
         for column in self.COLUMNS:
@@ -291,7 +294,7 @@ class View(ctk.CTkFrame):
                 column,
                 width=largura,
                 minwidth=largura,
-                stretch=False,
+                stretch=True,
                 anchor="center",
             )
 

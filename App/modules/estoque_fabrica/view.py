@@ -10,7 +10,7 @@ import customtkinter as ctk
 from modules._shared.almox_repository import AlmoxRepository
 from modules._shared.search_utils import corresponde_pesquisa
 from modules._shared.virtual_keyboard import abrir_teclado_virtual
-from modules.materiais_fabrica.manual_dialog import JanelaInclusaoManualFabrica
+from modules.estoque_fabrica.manual_dialog import JanelaInclusaoManualFabrica
 
 
 class JanelaAjusteMaterialFabrica(ctk.CTkToplevel):

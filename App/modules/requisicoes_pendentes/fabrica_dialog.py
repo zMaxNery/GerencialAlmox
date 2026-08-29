@@ -9,8 +9,6 @@ from modules._shared.almox_repository import AlmoxRepository
 
 
 class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
-    """Seleção de lotes de fábrica otimizada para uso em tablet."""
-
     def __init__(
         self,
         parent,
@@ -37,9 +35,10 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         self.lote_ativo: int | None = None
 
         self.title("Usar material em fábrica")
-        self.geometry("1100x740")
-        self.minsize(980, 660)
-        self.transient(parent.winfo_toplevel())
+        # self.geometry("700x700")
+        self.after(0, lambda: self.state("zoomed"))
+        # self.minsize(980, 660)
+        # self.transient(parent.winfo_toplevel())
         self.grab_set()
         self.focus_force()
         self.grid_columnconfigure(0, weight=1)
@@ -53,7 +52,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
         header.grid(row=0, column=0, sticky="ew", padx=22, pady=(18, 8))
         ctk.CTkLabel(
             header,
-            text="Compensar com material em fábrica?",
+            text="Estoque da fábrica",
             font=ctk.CTkFont(size=26, weight="bold"),
         ).pack(anchor="w")
         ctk.CTkLabel(
@@ -61,7 +60,7 @@ class JanelaUsoMaterialFabrica(ctk.CTkToplevel):
             text=(
                 f"Material: {self.item.get('material') or ''}   |   "
                 f"Rastreabilidade da requisição: {self.item.get('rastreabilidade') or '-'}\n"
-                f"Entrega informada: {self._fmt(self.quantidade_informada)}   |   "
+                f"Qtd entrega informada: {self._fmt(self.quantidade_informada)}   |   "
                 f"Total em fábrica deste material: {self._fmt(self.consulta.get('quantidade_disponivel'))}"
             ),
             justify="left",

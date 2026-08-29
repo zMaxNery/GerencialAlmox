@@ -5,7 +5,6 @@ from typing import Any
 
 from core.supabase_client import get_supabase
 
-
 class AlmoxRepository:
     '''
     Acesso centralizado às tabelas, visões e RPCs do Supabase.

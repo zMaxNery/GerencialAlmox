@@ -11,11 +11,11 @@ import customtkinter as ctk
 from modules._shared.almox_repository import AlmoxRepository
 from modules._shared.search_utils import corresponde_pesquisa
 from modules._shared.virtual_keyboard import abrir_teclado_virtual
-from modules.entregas_est.fabrica_dialog import JanelaUsoMaterialFabrica
-from modules.entregas_est.manual_dialog import JanelaRequisicaoManual
+from modules.requisicoes_pendentes.fabrica_dialog import JanelaUsoMaterialFabrica
+from modules.requisicoes_pendentes.manual_dialog import JanelaRequisicaoManual
 
 if TYPE_CHECKING:
-    from modules.entregas_est.view import View
+    from modules.requisicoes_pendentes.view import View
 
 class Scripts:
     def __init__(self, view: View) -> None:
@@ -72,7 +72,7 @@ class Scripts:
         estoque=self.view.estoque_filter.get().strip()
         pesquisa=self.view.pesquisa_filter.get().strip()
         campos=("numero_requisicao","nome_arquivo_email","material","dimensao",
-                "rastreabilidade","setor_dest","localizacao_est","data_requisicao")
+                "rastreabilidade","setor_dest","localizacao_est","data_requisicao", "maquina")
         filtered=[]
         for row in self.all_rows:
             if setor!="TODOS" and str(row.get("setor_dest") or "")!=setor: continue
@@ -115,7 +115,8 @@ class Scripts:
                     self._fmt(row.get("quantidade_restante")),
                     row.get("rastreabilidade") or "",
                     row.get("setor_dest") or "",
-                    row.get("localizacao_est") or "",
+                    row.get("maquina") or "",
+                    # row.get("localizacao_est") or "",
                 ),
                 tags=(tag_linha,),
             )
@@ -268,11 +269,11 @@ class Scripts:
             return
 
         segunda = messagebox.askyesno(
-            "CONFIRMAÇÃO FINAL",
+            "Conformação final",
             (
-                "Confirme novamente a exclusão.\n\n"
+                "Confirme novamente a exclusão.\n"
                 f"Material: {material}\n\n"
-                "Esta ação é irreversível!"
+                "Para desfazer a ação, contatar o administrativo!"
             ),
             icon="warning",
         )

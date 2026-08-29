@@ -1,4 +1,4 @@
-from modules.materiais_fabrica.view import MateriaisFabricaView
+from modules.estoque_fabrica.view import MateriaisFabricaView
 
 NOME = "Em Fábrica"
 ORDEM = 4

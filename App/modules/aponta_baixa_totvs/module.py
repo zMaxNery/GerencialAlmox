@@ -1,4 +1,4 @@
-from modules.lancamentos_baixa_totvs.view import View
+from modules.aponta_baixa_totvs.view import View
 
 NOME = "Baixas TOTVS"
 ORDEM = 6

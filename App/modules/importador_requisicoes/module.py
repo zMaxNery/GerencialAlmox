@@ -1,4 +1,4 @@
-from modules.importador_emails.view import ImportadorEmailsView
+from modules.importador_requisicoes.view import ImportadorEmailsView
 
 NOME = "Importar Requisições"
 ORDEM = 1

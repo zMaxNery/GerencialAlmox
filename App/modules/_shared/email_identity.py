@@ -12,11 +12,10 @@ from bs4 import BeautifulSoup
 
 
 def calcular_identificador_msg(path: str | Path) -> str:
-    """Retorna uma chave estável para identificar logicamente um e-mail.
-
+    """
     Prioridade:
     1. Internet Message-ID existente no e-mail;
-    2. impressão digital canônica de assunto, remetente, data e corpo.
+    2. impressão digital de assunto, remetente, data e corpo.
 
     A chave final é um SHA-256 hexadecimal
     """
@@ -68,10 +67,8 @@ def calcular_identificador_msg(path: str | Path) -> str:
 
     return hashlib.sha256(serializado.encode("utf-8")).hexdigest()
 
-
 def _normalizar_message_id(value: str) -> str:
     return value.strip().strip("<>").casefold()
-
 
 def _decodificar_html(value: Any) -> str:
     if value is None:
@@ -91,7 +88,6 @@ def _decodificar_html(value: Any) -> str:
 
     return str(value)
 
-
 def _texto_canonico_html(html: str) -> str:
     if not html:
         return ""
@@ -102,7 +98,6 @@ def _texto_canonico_html(html: str) -> str:
         elemento.decompose()
 
     return _normalizar(soup.get_text(" ", strip=True))
-
 
 def _normalizar_data(value: Any) -> str:
     if value is None:
@@ -118,13 +113,11 @@ def _normalizar_data(value: Any) -> str:
 
     return _normalizar(value)
 
-
 def _limpar(value: Any) -> str:
     if value is None:
         return ""
 
     return " ".join(str(value).replace("\xa0", " ").split()).strip()
-
 
 def _normalizar(value: Any) -> str:
     texto = _limpar(value).casefold()

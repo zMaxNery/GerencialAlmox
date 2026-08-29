@@ -5,7 +5,7 @@ from tkinter import ttk
 
 import customtkinter as ctk
 
-from modules.lancamentos_baixa_totvs.scipts import Scripts
+from modules.aponta_baixa_totvs.scipts import Scripts
 
 
 class View(ctk.CTkFrame):
