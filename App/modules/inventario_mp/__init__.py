@@ -1,0 +1,1 @@
+"""Tela inventário para MP."""

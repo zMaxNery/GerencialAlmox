@@ -269,11 +269,11 @@ class Scripts:
             return
 
         segunda = messagebox.askyesno(
-            "Conformação final",
+            "CONFIRMAÇÃO FINAL",
             (
-                "Confirme novamente a exclusão.\n"
+                "Confirme novamente a exclusão.\n\n"
                 f"Material: {material}\n\n"
-                "Para desfazer a ação, contatar o administrativo!"
+                "Esta ação é irreversível!"
             ),
             icon="warning",
         )
