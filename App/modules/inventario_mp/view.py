@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import getpass
 import tkinter as tk
+import os
+import tempfile
+
 from datetime import datetime
 from decimal import Decimal
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 import customtkinter as ctk
 
@@ -101,7 +104,7 @@ class InventarioMP(ctk.CTkFrame):
 
             campo = ctk.CTkEntry(
                 form,
-                height=42,
+                height=35,
                 font=ctk.CTkFont(size=18),
             )
             campo.grid(row=indice, column=1, sticky="ew", padx=(0, 8), pady=4)
@@ -198,14 +201,35 @@ class InventarioMP(ctk.CTkFrame):
         ctk.CTkButton(
             topo,
             text="Atualizar",
-            width=110,
+            width=80,
             height=40,
             command=self.atualizar,
         ).pack(side="right")
 
         ctk.CTkButton(
             topo,
+            text="Excel",
+            width=50,
+            height=40,
+            fg_color="#217346",
+            hover_color="#185C37",
+            command=self.exportar_excel,
+        ).pack(side="right", padx=(0, 10))
+
+        ctk.CTkButton(
+            topo,
+            text="Excluir",
+            width=80,
+            height=40,
+            fg_color="#C0392B",
+            hover_color="#922B21",
+            command=self.excluir_selecionado,
+        ).pack(side="right", padx=(0, 10))
+
+        ctk.CTkButton(
+            topo,
             text="Editar",
+            width=50,
             height=40,
             command=self.editar_selecionado,
         ).pack(side="right", padx=(0, 10))
@@ -348,6 +372,118 @@ class InventarioMP(ctk.CTkFrame):
 
         self._preencher_tabela(registros, selecionar_id)
 
+    
+    def exportar_excel(self) -> None:
+        """Exporta os registros carregados para uma planilha Excel."""
+        if not self.registros:
+            messagebox.showinfo(
+                "Exportar Excel",
+                "Não existem registros para exportar.",
+                parent=self.winfo_toplevel(),
+            )
+            return
+
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import (
+                Font,
+                PatternFill,
+                Alignment,
+                Border,
+                Side,
+            )
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Inventário MP"
+
+            cabecalhos = [
+                "Dt/Hr",
+                "Material",
+                "Qualidade",
+                "Rastreabilidade",
+                "Quantidade",
+                "Local",
+                "Usuário",
+            ]
+
+            ws.append(cabecalhos)
+
+            # Preenche os registros mantendo a ordem da tabela.
+            for row in self.registros.values():
+
+                quantidade = row.get("quantidade")
+                quantidade = (
+                    float(Decimal(str(quantidade)))
+                    if quantidade not in (None, "")
+                    else 0.0
+                )
+
+                ws.append([
+                    self._data_excel(row.get("criado_em")),
+                    row.get("bitola") or "",
+                    row.get("qualidade") or "",
+                    row.get("rastreabilidade") or "",
+                    quantidade,
+                    row.get("localizacao") or "",
+                    row.get("usuario") or "",
+                ])
+
+            # Formato de data e hora.
+            for celula in ws["A"][1:]:
+                celula.number_format = "dd/mm/yyyy hh:mm"
+
+            # Formato numérico da quantidade.
+            for celula in ws["E"][1:]:
+                celula.number_format = "#,##0.000"
+
+            # Largura das colunas.
+            larguras = {
+                "A": 20,
+                "B": 18,
+                "C": 22,
+                "D": 25,
+                "E": 16,
+                "F": 18,
+                "G": 22,
+            }
+
+            for coluna, largura in larguras.items():
+                ws.column_dimensions[coluna].width = largura
+
+            # Melhorias de navegação.
+            ws.freeze_panes = "A2"
+            ws.auto_filter.ref = ws.dimensions
+
+            # Cria um arquivo temporário no Windows.
+            fd, caminho = tempfile.mkstemp(
+                prefix=f"inventario_mp_{datetime.now():%Y%m%d_%H%M%S}_",
+                suffix=".xlsx",
+            )
+
+            os.close(fd)
+
+            # Gera a planilha.
+            wb.save(caminho)
+
+            # Abre automaticamente no aplicativo padrão do Windows.
+            os.startfile(caminho)
+
+        except ImportError:
+            messagebox.showerror(
+                "Biblioteca ausente",
+                "Instale a biblioteca openpyxl:\n\n"
+                "pip install openpyxl",
+                parent=self.winfo_toplevel(),
+            )
+
+        except Exception as exc:
+            messagebox.showerror(
+                "Erro na exportação",
+                str(exc),
+                parent=self.winfo_toplevel(),
+            )
+
     def _preencher_tabela(self, registros: list[dict], selecionar_id) -> None:
         self.registros.clear()
         for item_id in self.tree.get_children():
@@ -380,7 +516,7 @@ class InventarioMP(ctk.CTkFrame):
             self.tree.see(str(selecionar_id))
 
     # ------------------------------------------------------------------
-    # Incluir / editar / limpar
+    # Incluir / editar / excluir / limpar
     # ------------------------------------------------------------------
     def _ler_campos(self) -> dict[str, str]:
         return {
@@ -462,6 +598,73 @@ class InventarioMP(ctk.CTkFrame):
         self._mostrar_status("")
         self.campos["bitola"].focus_set()
 
+    def excluir_selecionado(self) -> None:
+        selecionados = self.tree.selection()
+        if not selecionados:
+            messagebox.showinfo(
+                "Inventário MP",
+                "Selecione um registro na tabela para excluir.",
+                parent=self.winfo_toplevel(),
+            )
+            return
+
+        registro_id = selecionados[0]
+        row = self.registros.get(registro_id)
+        if not row:
+            self.atualizar()
+            return
+
+        material = row.get("bitola") or "(sem material)"
+        rastreabilidade = row.get("rastreabilidade") or "(sem rastreabilidade)"
+        confirmado = messagebox.askyesno(
+            "Confirmar exclusão",
+            (
+                f"Deseja realmente excluir o registro nº {registro_id}?\n\n"
+                f"Material: {material}\n"
+                f"Rastreabilidade: {rastreabilidade}\n\n"
+                "Esta ação não poderá ser desfeita."
+            ),
+            icon="warning",
+            parent=self.winfo_toplevel(),
+        )
+        if not confirmado:
+            return
+
+        try:
+            # A operação é feita por RPC, seguindo o mesmo padrão usado
+            # para inclusão e alteração do inventário. A função do banco
+            # valida o acesso do usuário ao módulo antes de excluir.
+            response = self._obter_repositorio().client.rpc(
+                "excluir_inventario_mp",
+                {
+                    "p_id": int(registro_id),
+                    "p_usuario": self.operador,
+                },
+            ).execute()
+            resultado = response.data
+            if isinstance(resultado, list) and resultado:
+                resultado = resultado[0]
+            if not isinstance(resultado, dict) or resultado.get("status") != "EXCLUIDO":
+                raise RuntimeError(
+                    "O Supabase não confirmou a exclusão do registro."
+                )
+        except Exception as exc:
+            messagebox.showerror(
+                "Falha ao excluir registro",
+                str(exc),
+                parent=self.winfo_toplevel(),
+            )
+            return
+
+        if (
+            self.registro_em_edicao is not None
+            and str(self.registro_em_edicao.get("id")) == str(registro_id)
+        ):
+            self._limpar(manter_status=True)
+
+        self._mostrar_status(f"Registro nº {registro_id} excluído com sucesso.")
+        self.atualizar()
+
     def _limpar(self, manter_status: bool = False) -> None:
         for campo in self.campos.values():
             campo.delete(0, "end")
@@ -511,3 +714,20 @@ class InventarioMP(ctk.CTkFrame):
         if data_hora.tzinfo is not None:
             data_hora = data_hora.astimezone()
         return data_hora.strftime("%d/%m/%Y %H:%M")
+
+    @staticmethod
+    def _data_excel(valor):
+        if not valor:
+            return None
+
+        try:
+            data_hora = datetime.fromisoformat(
+                str(valor).strip().replace("Z", "+00:00")
+            )
+        except ValueError:
+            return str(valor)
+
+        if data_hora.tzinfo is not None:
+            data_hora = data_hora.astimezone().replace(tzinfo=None)
+
+        return data_hora

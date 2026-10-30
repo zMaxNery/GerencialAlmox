@@ -9,6 +9,7 @@ from core.module_loader import ModuleLoader
 from core.user_context import UserContext
 from core.user_session import definir_usuario_atual
 
+
 class HomePage(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -17,6 +18,7 @@ class HomePage(ctk.CTk):
         self.access_service: AccessService | None = None
         self.usuario_atual: UserContext | None = None
         self.erro_acesso: str | None = None
+        self.sidebar_visivel = True
 
         self._carregar_contexto_usuario()
 
@@ -38,8 +40,10 @@ class HomePage(ctk.CTk):
 
         self.title("Controles Almox")
         self.after(0, lambda: self.state("zoomed"))
+        self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
 
         self.barra_lateral()
         self.tela_principal()
@@ -60,20 +64,69 @@ class HomePage(ctk.CTk):
         definir_usuario_atual(self.usuario_atual)
 
     def tela_principal(self):
+        # Barra superior fixa: o controle de exibição do menu permanece
+        # disponível mesmo quando a barra lateral estiver recolhida.
+        self.topbar_frame = ctk.CTkFrame(
+            self,
+            height=48,
+            corner_radius=0,
+            fg_color="transparent",
+        )
+        self.topbar_frame.grid(
+            row=0,
+            column=1,
+            sticky="ew",
+            padx=20,
+            pady=(8, 0),
+        )
+        self.topbar_frame.grid_propagate(False)
+        self.topbar_frame.grid_columnconfigure(0, weight=1)
+
+        self.btn_sidebar = ctk.CTkButton(
+            self.topbar_frame,
+            text="☰ Ocultar menu",
+            width=150,
+            height=34,
+            command=self._alternar_barra_lateral,
+        )
+        self.btn_sidebar.grid(row=0, column=0, sticky="w")
+
         self.conteudo_frame = ctk.CTkFrame(self, corner_radius=0)
         self.conteudo_frame.grid(
-            row=0,
+            row=1,
             column=1,
             sticky="nsew",
             padx=20,
-            pady=20,
+            pady=(0, 20),
         )
         self.conteudo_frame.grid_columnconfigure(0, weight=1)
         self.conteudo_frame.grid_rowconfigure(0, weight=1)
 
+    def _alternar_barra_lateral(self) -> None:
+        if self.sidebar_visivel:
+            self.sidebar_frame.grid_remove()
+            self.sidebar_visivel = False
+            self.btn_sidebar.configure(text="☰ Mostrar menu")
+        else:
+            self.sidebar_frame.grid(
+                row=0,
+                column=0,
+                rowspan=2,
+                sticky="nsew",
+            )
+            self.sidebar_visivel = True
+            self.btn_sidebar.configure(text="☰ Ocultar menu")
+
+        self.update_idletasks()
+
     def barra_lateral(self):
         self.sidebar_frame = ctk.CTkFrame(self, width=230, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            sticky="nsew",
+        )
         self.sidebar_frame.grid_columnconfigure(0, weight=1)
         self.sidebar_frame.grid_rowconfigure(96, weight=1)
 
