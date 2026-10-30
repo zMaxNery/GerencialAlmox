@@ -5,6 +5,15 @@ from typing import Any
 
 from core.supabase_client import get_supabase
 
+
+class CampoInvalidoError(ValueError):
+    """Erro de validação associado a um campo específico do formulário."""
+
+    def __init__(self, campo: str, mensagem: str) -> None:
+        super().__init__(mensagem)
+        self.campo = campo
+
+
 class AlmoxRepository:
     '''
     Acesso centralizado às tabelas, visões e RPCs do Supabase.
@@ -402,6 +411,141 @@ class AlmoxRepository:
             response.data,
             "O Supabase não retornou o resultado do estorno administrativo.",
         )
+
+    # ------------------------------------------------------------------
+    # Inventário de matéria-prima (módulo inventario_mp)
+    # ------------------------------------------------------------------
+    def listar_inventario_mp(self) -> list[dict[str, Any]]:
+        response = (
+            self.client.table("vw_inventario_mp")
+            .select("*")
+            .order("criado_em", desc=True)
+            .order("id", desc=True)
+            .limit(5000)
+            .execute()
+        )
+        return response.data or []
+
+    def incluir_inventario_mp(
+        self,
+        bitola: str,
+        qualidade: str,
+        rastreabilidade: str,
+        quantidade: Decimal | str | float,
+        localizacao: str,
+        nome_operador: str,
+    ) -> dict[str, Any]:
+        dados = self._validar_inventario_mp(
+            bitola,
+            qualidade,
+            rastreabilidade,
+            quantidade,
+            localizacao,
+        )
+        operador = nome_operador.strip()
+        if not operador:
+            raise ValueError("Informe o usuário responsável pelo lançamento.")
+
+        response = self.client.rpc(
+            "incluir_inventario_mp",
+            {
+                "p_bitola": dados["bitola"],
+                "p_qualidade": dados["qualidade"],
+                "p_rastreabilidade": dados["rastreabilidade"],
+                "p_quantidade": dados["quantidade"],
+                "p_localizacao": dados["localizacao"],
+                "p_usuario": operador,
+            },
+        ).execute()
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado do lançamento.",
+        )
+
+    def atualizar_inventario_mp(
+        self,
+        registro_id: int,
+        bitola: str,
+        qualidade: str,
+        rastreabilidade: str,
+        quantidade: Decimal | str | float,
+        localizacao: str,
+        nome_operador: str,
+    ) -> dict[str, Any]:
+        dados = self._validar_inventario_mp(
+            bitola,
+            qualidade,
+            rastreabilidade,
+            quantidade,
+            localizacao,
+        )
+        operador = nome_operador.strip()
+        if not operador:
+            raise ValueError("Informe o usuário responsável pela alteração.")
+
+        response = self.client.rpc(
+            "atualizar_inventario_mp",
+            {
+                "p_id": int(registro_id),
+                "p_bitola": dados["bitola"],
+                "p_qualidade": dados["qualidade"],
+                "p_rastreabilidade": dados["rastreabilidade"],
+                "p_quantidade": dados["quantidade"],
+                "p_localizacao": dados["localizacao"],
+                "p_usuario": operador,
+            },
+        ).execute()
+        return self._obter_resultado_rpc(
+            response.data,
+            "O Supabase não retornou o resultado da alteração.",
+        )
+
+    @staticmethod
+    def _validar_inventario_mp(
+        bitola: str,
+        qualidade: str,
+        rastreabilidade: str,
+        quantidade: Decimal | str | float,
+        localizacao: str,
+    ) -> dict[str, Any]:
+        textos: dict[str, str] = {}
+        for chave, rotulo, valor in (
+            ("bitola", "Bitola", bitola),
+            ("qualidade", "Qualidade", qualidade),
+            ("rastreabilidade", "Rastreabilidade", rastreabilidade),
+            ("quantidade", "Quantidade", quantidade),
+            ("localizacao", "Local", localizacao),
+        ):
+            texto = " ".join(str(valor if valor is not None else "").split())
+            if not texto:
+                raise CampoInvalidoError(chave, f"Preencha o campo {rotulo}.")
+            textos[chave] = texto
+
+        try:
+            valor_quantidade = Decimal(
+                textos["quantidade"].replace(",", ".")
+            ).normalize()
+        except InvalidOperation as exc:
+            raise CampoInvalidoError(
+                "quantidade",
+                "Quantidade inválida. Use apenas números.",
+            ) from exc
+
+        if not valor_quantidade.is_finite() or valor_quantidade <= 0:
+            raise CampoInvalidoError(
+                "quantidade",
+                "A quantidade deve ser maior que zero.",
+            )
+        if valor_quantidade.as_tuple().exponent < -3:
+            raise CampoInvalidoError(
+                "quantidade",
+                "Use no máximo 3 casas decimais na quantidade.",
+            )
+        if valor_quantidade >= Decimal("100000000000"):
+            raise CampoInvalidoError("quantidade", "Quantidade muito grande.")
+
+        textos["quantidade"] = float(valor_quantidade)
+        return textos
 
     @staticmethod
     def _normalizar_quantidade(
