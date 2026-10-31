@@ -13,7 +13,8 @@ truncate table
     public.emails_importados,
     public.itens_requisicao,
     public.itens_resumo_totvs,
-    public.lotes_materiais_fabrica
+    public.lotes_materiais_fabrica,
+    public.inventario_mp
 restart identity;
 
 commit;
