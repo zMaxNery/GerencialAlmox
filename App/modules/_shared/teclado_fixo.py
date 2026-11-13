@@ -7,19 +7,16 @@ import customtkinter as ctk
 
 
 class TecladoFixo(ctk.CTkFrame):
-    """Teclado virtual fixo, embutido na própria tela.
+    """Teclado virtual fixo da tela de inventário.
 
-    Diferente do ``TecladoVirtual`` (que abre numa janela separada), este
-    teclado fica sempre visível e digita no campo definido por
-    ``definir_alvo``. Use ``registrar_campo`` para que o alvo acompanhe
-    automaticamente o campo que recebeu o foco.
+    Exibe somente as letras A, G, L e X e os números de 0 a 9.
+    Os controles Apagar e Próximo continuam disponíveis para facilitar
+    o preenchimento dos campos.
     """
 
     LINHAS = (
-        list("1234567890") + ["-"],
-        list("QWERTYUIOP") + ["Ç"],
-        list("ASDFGHJKL") + ["/", '"'],
-        list("ZXCVBNM") + [",", ".", "_", "+"],
+        list("1234567890"),
+        list("AGLX"),
     )
 
     def __init__(
@@ -31,10 +28,8 @@ class TecladoFixo(ctk.CTkFrame):
         super().__init__(parent)
 
         self._alvo = None
-        self._maiusculas = True
         self._ao_proximo = ao_proximo
         self._altura = altura_tecla
-        self._teclas_letras: list[tuple[ctk.CTkButton, str]] = []
 
         self._build()
 
@@ -62,6 +57,9 @@ class TecladoFixo(ctk.CTkFrame):
             self.grid_columnconfigure(coluna, weight=1, uniform="tecla")
 
         for linha_idx, teclas in enumerate(self.LINHAS):
+            # Centraliza a fileira de letras abaixo dos números.
+            deslocamento = (colunas - len(teclas)) // 2
+
             for coluna_idx, tecla in enumerate(teclas):
                 botao = ctk.CTkButton(
                     self,
@@ -73,13 +71,11 @@ class TecladoFixo(ctk.CTkFrame):
                 )
                 botao.grid(
                     row=linha_idx,
-                    column=coluna_idx,
+                    column=coluna_idx + deslocamento,
                     sticky="nsew",
                     padx=3,
                     pady=2,
                 )
-                if tecla.isalpha():
-                    self._teclas_letras.append((botao, tecla))
 
         controles = ctk.CTkFrame(self, fg_color="transparent")
         controles.grid(
@@ -89,43 +85,23 @@ class TecladoFixo(ctk.CTkFrame):
             sticky="ew",
             pady=(4, 2),
         )
-        controles.grid_columnconfigure(1, weight=1)
-
-        self.caixa_btn = ctk.CTkButton(
-            controles,
-            text="ABC",
-            width=100,
-            height=self._altura,
-            fg_color="#2F80ED",
-            command=self._alternar_caixa,
-        )
-        self.caixa_btn.grid(row=0, column=0, padx=3, sticky="ew")
-
-        ctk.CTkButton(
-            controles,
-            text="Espaço",
-            height=self._altura,
-            font=ctk.CTkFont(size=18, weight="bold"),
-            command=lambda: self._digitar(" "),
-        ).grid(row=0, column=1, padx=3, sticky="ew")
+        controles.grid_columnconfigure((0, 1), weight=1, uniform="controle")
 
         ctk.CTkButton(
             controles,
             text="⌫ Apagar",
-            width=130,
             height=self._altura,
             command=self._apagar,
-        ).grid(row=0, column=2, padx=3, sticky="ew")
+        ).grid(row=0, column=0, padx=3, sticky="ew")
 
         ctk.CTkButton(
             controles,
             text="Próximo ▶",
-            width=130,
             height=self._altura,
             fg_color="#2E8B57",
             hover_color="#247447",
             command=self._proximo,
-        ).grid(row=0, column=3, padx=3, sticky="ew")
+        ).grid(row=0, column=1, padx=3, sticky="ew")
 
     # ------------------------------------------------------------------
     # Ações das teclas
@@ -139,9 +115,6 @@ class TecladoFixo(ctk.CTkFrame):
         entry = self._entry()
         if entry is None:
             return
-
-        if valor.isalpha():
-            valor = valor.upper() if self._maiusculas else valor.lower()
 
         try:
             if entry.selection_present():
@@ -166,15 +139,6 @@ class TecladoFixo(ctk.CTkFrame):
             entry.focus_set()
         except tk.TclError:
             pass
-
-    def _alternar_caixa(self) -> None:
-        self._maiusculas = not self._maiusculas
-        self.caixa_btn.configure(
-            text="ABC" if self._maiusculas else "abc",
-            fg_color="#2F80ED" if self._maiusculas else ("#3B8ED0", "#1F6AA5"),
-        )
-        for botao, letra in self._teclas_letras:
-            botao.configure(text=letra if self._maiusculas else letra.lower())
 
     def _proximo(self) -> None:
         if self._ao_proximo is not None:
