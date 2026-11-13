@@ -87,6 +87,7 @@ $PyInstallerArgs = @(
     "--collect-submodules=win32com"
     "--hidden-import=pythoncom"
     "--hidden-import=pywintypes"
+    "--hidden-import=openpyxl"
 
     $MainFile
 )

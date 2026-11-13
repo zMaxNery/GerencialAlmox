@@ -16,6 +16,8 @@ from modules._shared.almox_repository import (
     CampoInvalidoError,
 )
 from modules._shared.teclado_fixo import TecladoFixo
+from modules.configuracoes.repository import ConfiguracoesRepository
+from modules.inventario_mp.filtro_dialog import FiltroInventarioDialog
 
 
 class InventarioMP(ctk.CTkFrame):
@@ -48,10 +50,14 @@ class InventarioMP(ctk.CTkFrame):
         super().__init__(parent, corner_radius=0)
 
         self.repository: AlmoxRepository | None = None
+        self.config_repository: ConfiguracoesRepository | None = None
         self.operador = getpass.getuser()
-        self.registros: dict[str, dict] = {}
+        self.registros_todos: dict[str, dict] = {}
+        self.registros: dict[str, dict] = {}  # registros atualmente visíveis
         self.registro_em_edicao: dict | None = None
-        self.campos: dict[str, ctk.CTkEntry] = {}
+        self.campos: dict[str, object] = {}
+        self.locais_estoque: list[str] = []
+        self.filtros = {"data_de": None, "data_ate": None, "usuarios": None}
         self._indice_ativo = 0
 
         self.grid_columnconfigure(0, weight=0)
@@ -102,11 +108,21 @@ class InventarioMP(ctk.CTkFrame):
                 font=ctk.CTkFont(size=16, weight="bold"),
             ).grid(row=indice, column=0, sticky="w", padx=(8, 8), pady=4)
 
-            campo = ctk.CTkEntry(
-                form,
-                height=35,
-                font=ctk.CTkFont(size=18),
-            )
+            if chave == "localizacao":
+                campo = ctk.CTkComboBox(
+                    form,
+                    values=[],
+                    state="readonly",
+                    height=35,
+                    font=ctk.CTkFont(size=18),
+                )
+                campo.set("")
+            else:
+                campo = ctk.CTkEntry(
+                    form,
+                    height=35,
+                    font=ctk.CTkFont(size=18),
+                )
             campo.grid(row=indice, column=1, sticky="ew", padx=(0, 8), pady=4)
             campo.bind(
                 "<FocusIn>",
@@ -136,6 +152,7 @@ class InventarioMP(ctk.CTkFrame):
             command=self._confirmar,
         )
         self.confirmar_btn.grid(row=0, column=0, sticky="ew", padx=(8, 6))
+        self.confirmar_btn.configure(state="disabled")
 
         self.limpar_btn = ctk.CTkButton(
             botoes,
@@ -168,8 +185,9 @@ class InventarioMP(ctk.CTkFrame):
         self.teclado.grid(row=4, column=0, sticky="sew", padx=8, pady=(4, 10))
         painel.grid_rowconfigure(4, weight=1)
 
-        for campo in self.campos.values():
-            self.teclado.registrar_campo(campo)
+        for chave, campo in self.campos.items():
+            if chave != "localizacao":
+                self.teclado.registrar_campo(campo)
         self.teclado.definir_alvo(self.campos["bitola"])
 
     def _build_tabela(self) -> None:
@@ -197,24 +215,6 @@ class InventarioMP(ctk.CTkFrame):
             text="Itens Lançados",
             font=ctk.CTkFont(size=22, weight="bold"),
         ).pack(side="left")
-
-        ctk.CTkButton(
-            topo,
-            text="Atualizar",
-            width=80,
-            height=40,
-            command=self.atualizar,
-        ).pack(side="right")
-
-        ctk.CTkButton(
-            topo,
-            text="Excel",
-            width=50,
-            height=40,
-            fg_color="#217346",
-            hover_color="#185C37",
-            command=self.exportar_excel,
-        ).pack(side="right", padx=(0, 10))
 
         ctk.CTkButton(
             topo,
@@ -273,7 +273,7 @@ class InventarioMP(ctk.CTkFrame):
             "data_hora": 140,
             "bitola": 90,
             "qualidade": 140,
-            "rastreabilidade": 150,
+            "rastreabilidade": 155,
             "quantidade": 115,
             "localizacao": 130,
             "operador": 140,
@@ -322,6 +322,35 @@ class InventarioMP(ctk.CTkFrame):
         y_scroll.grid(row=0, column=1, sticky="ns")
         x_scroll.grid(row=1, column=0, sticky="ew")
 
+
+        # Barra de ações abaixo da tabela, mantendo o espaço principal para os registros.
+        rodape = ctk.CTkFrame(direita, fg_color="transparent")
+        rodape.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+
+        ctk.CTkButton(
+            rodape,
+            text="Filtros",
+            width=100,
+            height=38,
+            command=self.abrir_filtros,
+        ).pack(side="right")
+        ctk.CTkButton(
+            rodape,
+            text="Excel",
+            width=90,
+            height=38,
+            fg_color="#217346",
+            hover_color="#185C37",
+            command=self.exportar_excel,
+        ).pack(side="right", padx=(0, 8))
+        ctk.CTkButton(
+            rodape,
+            text="Atualizar",
+            width=100,
+            height=38,
+            command=self.atualizar,
+        ).pack(side="right", padx=(0, 8))
+
     # ------------------------------------------------------------------
     # Foco e navegação entre os campos
     # ------------------------------------------------------------------
@@ -340,6 +369,8 @@ class InventarioMP(ctk.CTkFrame):
                     self.COR_CAMPO_ATIVO if i == indice else self._borda_padrao
                 )
             )
+        if self.CAMPOS[indice][0] == "localizacao":
+            self.teclado.definir_alvo(None)
 
     def _proximo_campo(self) -> None:
         proximo = (self._indice_ativo + 1) % len(self.CAMPOS)
@@ -359,6 +390,18 @@ class InventarioMP(ctk.CTkFrame):
                 return
         except tk.TclError:
             return
+
+        try:
+            self._atualizar_locais_estoque()
+        except Exception as exc:
+            self.locais_estoque = []
+            self.campos["localizacao"].configure(values=[])
+            self.campos["localizacao"].set("")
+            self.confirmar_btn.configure(state="disabled")
+            self._mostrar_status(
+                f"Não foi possível carregar os locais de estoque: {exc}",
+                erro=True,
+            )
 
         try:
             registros = self._obter_repositorio().listar_inventario_mp()
@@ -435,17 +478,17 @@ class InventarioMP(ctk.CTkFrame):
 
             # Formato numérico da quantidade.
             for celula in ws["E"][1:]:
-                celula.number_format = "#,##0.000"
+                celula.number_format = "#,##0.00"
 
             # Largura das colunas.
             larguras = {
                 "A": 20,
                 "B": 18,
-                "C": 22,
-                "D": 25,
+                "C": 15,
+                "D": 20,
                 "E": 16,
-                "F": 18,
-                "G": 22,
+                "F": 10,
+                "G": 15,
             }
 
             for coluna, largura in larguras.items():
@@ -484,14 +527,37 @@ class InventarioMP(ctk.CTkFrame):
                 parent=self.winfo_toplevel(),
             )
 
-    def _preencher_tabela(self, registros: list[dict], selecionar_id) -> None:
-        self.registros.clear()
+    def _preencher_tabela(self, registros: list[dict], selecionar_id=None) -> None:
+        self.registros_todos = {
+            str(row["id"]): row
+            for row in registros
+        }
+        self._aplicar_filtros_tabela(selecionar_id)
+
+    def _aplicar_filtros_tabela(self, selecionar_id=None) -> None:
+        data_de = self.filtros.get("data_de")
+        data_ate = self.filtros.get("data_ate")
+        usuarios = self.filtros.get("usuarios")
+
+        filtrados: dict[str, dict] = {}
+        for registro_id, row in self.registros_todos.items():
+            usuario = str(row.get("usuario") or "(sem usuário)")
+            if usuarios is not None and usuario not in usuarios:
+                continue
+
+            data_registro = self._data_local_registro(row.get("criado_em"))
+            if data_de and (data_registro is None or data_registro < data_de):
+                continue
+            if data_ate and (data_registro is None or data_registro > data_ate):
+                continue
+
+            filtrados[registro_id] = row
+
+        self.registros = filtrados
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
 
-        for indice, row in enumerate(registros):
-            chave = str(row["id"])
-            self.registros[chave] = row
+        for indice, (chave, row) in enumerate(self.registros.items()):
             tag = "linha_par" if indice % 2 == 0 else "linha_impar"
             self.tree.insert(
                 "",
@@ -509,11 +575,85 @@ class InventarioMP(ctk.CTkFrame):
                 tags=(tag,),
             )
 
-        self.contador_label.configure(text=f"{len(registros)} registro(s)")
+        total = len(self.registros_todos)
+        visiveis = len(self.registros)
+        if self.filtros.get("data_de") or self.filtros.get("data_ate") or usuarios is not None:
+            self.contador_label.configure(text=f"{visiveis} de {total} registro(s)")
+        else:
+            self.contador_label.configure(text=f"{total} registro(s)")
 
         if selecionar_id is not None and str(selecionar_id) in self.registros:
             self.tree.selection_set(str(selecionar_id))
             self.tree.see(str(selecionar_id))
+
+    def _data_local_registro(self, valor):
+        if not valor:
+            return None
+        try:
+            data_hora = datetime.fromisoformat(
+                str(valor).strip().replace("Z", "+00:00")
+            )
+        except ValueError:
+            return None
+        if data_hora.tzinfo is not None:
+            data_hora = data_hora.astimezone()
+        return data_hora.date()
+
+    def _obter_config_repository(self) -> ConfiguracoesRepository:
+        if self.config_repository is None:
+            self.config_repository = ConfiguracoesRepository()
+        return self.config_repository
+
+    def _atualizar_locais_estoque(self) -> None:
+        locais = self._obter_config_repository().listar_locais_estoque(somente_ativos=True)
+        self.locais_estoque = [
+            str(item.get("nome") or "").strip()
+            for item in locais
+            if str(item.get("nome") or "").strip()
+        ]
+
+        valores = list(self.locais_estoque)
+        # Um local bloqueado pode permanecer selecionado apenas no registro que
+        # já o utilizava. O usuário pode editar os demais campos sem migrá-lo.
+        if self.registro_em_edicao is not None:
+            local_anterior = str(self.registro_em_edicao.get("localizacao") or "").strip()
+            if local_anterior and local_anterior not in valores:
+                valores.append(local_anterior)
+
+        campo = self.campos["localizacao"]
+        atual = campo.get().strip()
+        campo.configure(values=valores)
+        campo.set(atual if atual in valores else "")
+        self.confirmar_btn.configure(
+            state="normal" if self.locais_estoque or self.registro_em_edicao else "disabled"
+        )
+
+        if not self.locais_estoque:
+            self._mostrar_status(
+                "Não existem locais ativos. Cadastre ou libere um local em Configurações.",
+                erro=True,
+            )
+
+    def abrir_filtros(self) -> None:
+        usuarios = sorted({
+            str(row.get("usuario") or "(sem usuário)")
+            for row in self.registros_todos.values()
+        }, key=str.casefold)
+        FiltroInventarioDialog(
+            self,
+            usuarios=usuarios,
+            filtros_atuais=self.filtros,
+            ao_aplicar=self._receber_filtros,
+            ao_limpar=self._limpar_filtros,
+        )
+
+    def _receber_filtros(self, filtros: dict) -> None:
+        self.filtros = filtros
+        self._aplicar_filtros_tabela()
+
+    def _limpar_filtros(self) -> None:
+        self.filtros = {"data_de": None, "data_ate": None, "usuarios": None}
+        self._aplicar_filtros_tabela()
 
     # ------------------------------------------------------------------
     # Incluir / editar / excluir / limpar
@@ -577,6 +717,14 @@ class InventarioMP(ctk.CTkFrame):
 
         for chave, _rotulo in self.CAMPOS:
             campo = self.campos[chave]
+            if chave == "localizacao":
+                local_atual = str(row.get(chave) or "")
+                opcoes = list(self.locais_estoque)
+                if local_atual and local_atual not in opcoes:
+                    opcoes.append(local_atual)
+                campo.configure(values=opcoes)
+                campo.set(local_atual)
+                continue
             campo.delete(0, "end")
             if chave == "quantidade":
                 texto = self._fmt(row.get("quantidade")).replace(".", ",")
@@ -595,6 +743,7 @@ class InventarioMP(ctk.CTkFrame):
             hover_color="#1F6AA5",
         )
         self.limpar_btn.configure(text="Cancelar edição")
+        self.confirmar_btn.configure(state="normal")
         self._mostrar_status("")
         self.campos["bitola"].focus_set()
 
@@ -666,8 +815,12 @@ class InventarioMP(ctk.CTkFrame):
         self.atualizar()
 
     def _limpar(self, manter_status: bool = False) -> None:
-        for campo in self.campos.values():
-            campo.delete(0, "end")
+        for chave, campo in self.campos.items():
+            if chave == "localizacao":
+                campo.set("")
+                campo.configure(values=self.locais_estoque)
+            else:
+                campo.delete(0, "end")
 
         self.registro_em_edicao = None
         self.titulo_label.configure(
@@ -680,6 +833,9 @@ class InventarioMP(ctk.CTkFrame):
             hover_color="#247447",
         )
         self.limpar_btn.configure(text="Limpar")
+        self.confirmar_btn.configure(
+            state="normal" if self.locais_estoque else "disabled"
+        )
 
         if not manter_status:
             self._mostrar_status("")
