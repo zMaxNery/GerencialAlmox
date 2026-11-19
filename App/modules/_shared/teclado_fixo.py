@@ -7,23 +7,15 @@ import customtkinter as ctk
 
 
 class TecladoFixo(ctk.CTkFrame):
-    """Teclado virtual fixo da tela de inventário.
-
-    Exibe somente as letras A, G, L e X e os números de 0 a 9.
-    Os controles Apagar e Próximo continuam disponíveis para facilitar
-    o preenchimento dos campos.
     """
-
-    LINHAS = (
-        list("1234567890"),
-        list("AGLX"),
-    )
+    Teclado virtual fixo da tela de inventário.
+    """
 
     def __init__(
         self,
         parent,
         ao_proximo: Callable[[], None] | None = None,
-        altura_tecla: int = 46,
+        altura_tecla: int = 42,
     ) -> None:
         super().__init__(parent)
 
@@ -52,56 +44,106 @@ class TecladoFixo(ctk.CTkFrame):
     # Construção
     # ------------------------------------------------------------------
     def _build(self) -> None:
-        colunas = max(len(linha) for linha in self.LINHAS)
-        for coluna in range(colunas):
-            self.grid_columnconfigure(coluna, weight=1, uniform="tecla")
+        # Quatro colunas de mesma largura
+        for coluna in range(4):
+            self.grid_columnconfigure(
+                coluna,
+                weight=1,
+                uniform="tecla",
+            )
 
-        for linha_idx, teclas in enumerate(self.LINHAS):
-            # Centraliza a fileira de letras abaixo dos números.
-            deslocamento = (colunas - len(teclas)) // 2
-
-            for coluna_idx, tecla in enumerate(teclas):
-                botao = ctk.CTkButton(
-                    self,
-                    text=tecla,
-                    width=40,
-                    height=self._altura,
-                    font=ctk.CTkFont(size=19, weight="bold"),
-                    command=lambda valor=tecla: self._digitar(valor),
-                )
-                botao.grid(
-                    row=linha_idx,
-                    column=coluna_idx + deslocamento,
-                    sticky="nsew",
-                    padx=3,
-                    pady=2,
-                )
-
-        controles = ctk.CTkFrame(self, fg_color="transparent")
-        controles.grid(
-            row=len(self.LINHAS),
-            column=0,
-            columnspan=colunas,
-            sticky="ew",
-            pady=(4, 2),
+        # Disposição fixa das teclas
+        disposicao = (
+            ("1", 0, 0), ("2", 0, 1), ("3", 0, 2), ("A", 0, 3),
+            ("4", 1, 0), ("5", 1, 1), ("6", 1, 2), ("G", 1, 3),
+            ("7", 2, 0), ("8", 2, 1), ("9", 2, 2), ("L", 2, 3),
+            ("0", 3, 1),                         ("X", 3, 3),
         )
-        controles.grid_columnconfigure((0, 1), weight=1, uniform="controle")
+
+        for tecla, linha, coluna in disposicao:
+
+            if tecla.isdigit():
+                cor = "#26384D"
+                hover = "#354F6B"
+            else:
+                cor = "#246B57"
+                hover = "#31866C"
+
+            botao = ctk.CTkButton(
+                self,
+                text=tecla,
+                height=self._altura,
+                corner_radius=12,
+                fg_color=cor,
+                hover_color=hover,
+                text_color="#FFFFFF",
+                font=ctk.CTkFont(
+                    size=25,
+                    weight="bold",
+                ),
+                command=lambda valor=tecla: self._digitar(valor),
+            )
+
+            botao.grid(
+                row=linha,
+                column=coluna,
+                sticky="nsew",
+                padx=4,
+                pady=4,
+            )
+
+        # Controles inferiores
+        controles = ctk.CTkFrame(
+            self,
+            fg_color="transparent",
+        )
+
+        controles.grid(
+            row=4,
+            column=0,
+            columnspan=4,
+            sticky="ew",
+            pady=(10, 4),
+        )
+
+        controles.grid_columnconfigure(
+            (0, 1),
+            weight=1,
+            uniform="controle",
+        )
 
         ctk.CTkButton(
             controles,
-            text="⌫ Apagar",
+            text="⌫  Apagar",
             height=self._altura,
+            corner_radius=12,
+            fg_color="#B94A48",
+            hover_color="#963B39",
+            font=ctk.CTkFont(size=19, weight="bold"),
             command=self._apagar,
-        ).grid(row=0, column=0, padx=3, sticky="ew")
+        ).grid(
+            row=0,
+            column=0,
+            padx=4,
+            sticky="ew",
+        )
 
         ctk.CTkButton(
             controles,
-            text="Próximo ▶",
+            text="Próximo  ▶",
             height=self._altura,
+            corner_radius=12,
             fg_color="#2E8B57",
             hover_color="#247447",
+            font=ctk.CTkFont(size=19, weight="bold"),
             command=self._proximo,
-        ).grid(row=0, column=1, padx=3, sticky="ew")
+        ).grid(
+            row=0,
+            column=1,
+            padx=4,
+            sticky="ew",
+        )
+
 
     # ------------------------------------------------------------------
     # Ações das teclas

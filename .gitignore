@@ -7,3 +7,4 @@ dist/
 GerencialAlmox.spec
 GerencialAlmox.code-workspace
 build_spec/
+.bak

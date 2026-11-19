@@ -24,7 +24,7 @@ class InventarioMP(ctk.CTkFrame):
     """Lançamentos da contagem de MP."""
 
     CAMPOS = (
-        ("bitola", "Material"),
+        ("bitola", "Bitola"),
         ("qualidade", "Qualidade"),
         ("rastreabilidade", "Rastreabilidade"),
         ("quantidade", "Quantidade"),
@@ -262,7 +262,7 @@ class InventarioMP(ctk.CTkFrame):
 
         rotulos = {
             "data_hora": "Dt/Hr",
-            "bitola": "Material",
+            "bitola": "Bitola",
             "qualidade": "Qualidade",
             "rastreabilidade": "Rastreabilidade",
             "quantidade": "Quantidade",
@@ -442,7 +442,7 @@ class InventarioMP(ctk.CTkFrame):
 
             cabecalhos = [
                 "Dt/Hr",
-                "Material",
+                "Bitola",
                 "Qualidade",
                 "Rastreabilidade",
                 "Quantidade",
