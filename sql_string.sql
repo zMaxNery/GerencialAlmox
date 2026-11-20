@@ -4211,8 +4211,14 @@ create table if not exists public.inventario_mp (
     criado_em timestamptz not null default now(),
 
     atualizado_por text,
-    atualizado_em timestamptz
+    atualizado_em timestamptz,
+    codigo text not null default 'Não Identificado'
 );
+
+alter table public.inventario_mp add column if not exists codigo text;
+update public.inventario_mp set codigo = 'Não Identificado' where codigo is null or btrim(codigo) = '';
+alter table public.inventario_mp alter column codigo set default 'Não Identificado';
+alter table public.inventario_mp alter column codigo set not null;
 
 create index if not exists idx_inventario_mp_criado_em
     on public.inventario_mp(criado_em desc);
@@ -4234,18 +4240,22 @@ select
     i.criado_por as usuario,
     i.criado_em,
     i.atualizado_por,
-    i.atualizado_em
+    i.atualizado_em,
+    i.codigo
 from public.inventario_mp i;
 
 -- ----------------------------------------------------------------------------
 -- 3. RPC: INCLUIR LANÇAMENTO
 -- ----------------------------------------------------------------------------
+drop function if exists public.incluir_inventario_mp(text, text, text, numeric, text, text);
+
 create or replace function public.incluir_inventario_mp(
     p_bitola text,
     p_qualidade text,
     p_rastreabilidade text,
     p_quantidade numeric,
     p_localizacao text,
+    p_codigo text,
     p_usuario text
 )
 returns jsonb
@@ -4286,6 +4296,7 @@ begin
         rastreabilidade,
         quantidade,
         localizacao,
+        codigo,
         criado_por
     )
     values (
@@ -4294,6 +4305,7 @@ begin
         btrim(p_rastreabilidade),
         p_quantidade,
         btrim(p_localizacao),
+        coalesce(nullif(btrim(p_codigo), ''), 'Não Identificado'),
         btrim(p_usuario)
     )
     returning id into v_id;
@@ -4308,6 +4320,8 @@ $$;
 -- ----------------------------------------------------------------------------
 -- 4. RPC: ATUALIZAR LANÇAMENTO
 -- ----------------------------------------------------------------------------
+drop function if exists public.atualizar_inventario_mp(bigint, text, text, text, numeric, text, text);
+
 create or replace function public.atualizar_inventario_mp(
     p_id bigint,
     p_bitola text,
@@ -4315,6 +4329,7 @@ create or replace function public.atualizar_inventario_mp(
     p_rastreabilidade text,
     p_quantidade numeric,
     p_localizacao text,
+    p_codigo text,
     p_usuario text
 )
 returns jsonb
@@ -4354,6 +4369,7 @@ begin
         rastreabilidade = btrim(p_rastreabilidade),
         quantidade = p_quantidade,
         localizacao = btrim(p_localizacao),
+        codigo = coalesce(nullif(btrim(p_codigo), ''), 'Não Identificado'),
         atualizado_por = btrim(p_usuario),
         atualizado_em = now()
     where id = p_id;
@@ -4442,12 +4458,12 @@ revoke all on public.inventario_mp from anon, authenticated;
 
 grant select on public.vw_inventario_mp to anon, authenticated;
 
-revoke all on function public.incluir_inventario_mp(text, text, text, numeric, text, text) from public;
-revoke all on function public.atualizar_inventario_mp(bigint, text, text, text, numeric, text, text) from public;
+revoke all on function public.incluir_inventario_mp(text, text, text, numeric, text, text, text) from public;
+revoke all on function public.atualizar_inventario_mp(bigint, text, text, text, numeric, text, text, text) from public;
 
 grant execute
-    on function public.incluir_inventario_mp(text, text, text, numeric, text, text),
-       public.atualizar_inventario_mp(bigint, text, text, text, numeric, text, text)
+    on function public.incluir_inventario_mp(text, text, text, numeric, text, text, text),
+       public.atualizar_inventario_mp(bigint, text, text, text, numeric, text, text, text)
     to anon, authenticated;
 
 commit;

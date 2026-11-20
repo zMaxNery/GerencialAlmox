@@ -434,6 +434,7 @@ class AlmoxRepository:
         quantidade: Decimal | str | float,
         localizacao: str,
         nome_operador: str,
+        codigo: str | None = None,
     ) -> dict[str, Any]:
         dados = self._validar_inventario_mp(
             bitola,
@@ -442,6 +443,8 @@ class AlmoxRepository:
             quantidade,
             localizacao,
         )
+        codigo_normalizado = str(codigo).strip() if codigo is not None else ""
+        codigo_normalizado = codigo_normalizado or "PENDENTE DE IDENTIFICAÇÃO"
         operador = nome_operador.strip()
         if not operador:
             raise ValueError("Informe o usuário responsável pelo lançamento.")
@@ -454,6 +457,7 @@ class AlmoxRepository:
                 "p_rastreabilidade": dados["rastreabilidade"],
                 "p_quantidade": dados["quantidade"],
                 "p_localizacao": dados["localizacao"],
+                "p_codigo": codigo_normalizado,
                 "p_usuario": operador,
             },
         ).execute()
@@ -471,6 +475,7 @@ class AlmoxRepository:
         quantidade: Decimal | str | float,
         localizacao: str,
         nome_operador: str,
+        codigo: str | None = None,
     ) -> dict[str, Any]:
         dados = self._validar_inventario_mp(
             bitola,
@@ -479,6 +484,8 @@ class AlmoxRepository:
             quantidade,
             localizacao,
         )
+        codigo_normalizado = str(codigo).strip() if codigo is not None else ""
+        codigo_normalizado = codigo_normalizado or "PENDENTE DE IDENTIFICAÇÃO"
         operador = nome_operador.strip()
         if not operador:
             raise ValueError("Informe o usuário responsável pela alteração.")
@@ -492,6 +499,7 @@ class AlmoxRepository:
                 "p_rastreabilidade": dados["rastreabilidade"],
                 "p_quantidade": dados["quantidade"],
                 "p_localizacao": dados["localizacao"],
+                "p_codigo": codigo_normalizado,
                 "p_usuario": operador,
             },
         ).execute()

@@ -18,6 +18,10 @@ from modules._shared.almox_repository import (
 from modules._shared.teclado_fixo import TecladoFixo
 from modules.configuracoes.repository import ConfiguracoesRepository
 from modules.inventario_mp.filtro_dialog import FiltroInventarioDialog
+from modules.inventario_mp.catalogo_produtos import (
+    CODIGO_PENDENTE,
+    buscar_codigo_produto,
+)
 
 
 class InventarioMP(ctk.CTkFrame):
@@ -39,6 +43,7 @@ class InventarioMP(ctk.CTkFrame):
         "quantidade",
         "localizacao",
         "operador",
+        "codigo",
     )
 
     COR_CAMPO_ATIVO = "#2F80ED"
@@ -60,8 +65,8 @@ class InventarioMP(ctk.CTkFrame):
         self.filtros = {"data_de": None, "data_ate": None, "usuarios": None}
         self._indice_ativo = 0
 
-        self.grid_columnconfigure(0, weight=0)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
         self.grid_rowconfigure(0, weight=1)
 
         self._build_formulario()
@@ -75,7 +80,7 @@ class InventarioMP(ctk.CTkFrame):
     # ------------------------------------------------------------------
     def _build_formulario(self) -> None:
         painel = ctk.CTkFrame(self, width=640)
-        painel.grid(row=0, column=0, sticky="ns", padx=(20, 10), pady=20)
+        painel.grid(row=0, column=1, sticky="ns", padx=(20, 10), pady=8)
         painel.grid_propagate(False)
         painel.grid_columnconfigure(0, weight=1)
         self.painel = painel
@@ -123,6 +128,8 @@ class InventarioMP(ctk.CTkFrame):
                     height=35,
                     font=ctk.CTkFont(size=18),
                 )
+                if chave == "rastreabilidade":
+                    campo.insert(0, "L")
             campo.grid(row=indice, column=1, sticky="ew", padx=(0, 8), pady=4)
             campo.bind(
                 "<FocusIn>",
@@ -135,11 +142,43 @@ class InventarioMP(ctk.CTkFrame):
                 add="+",
             )
             self.campos[chave] = campo
+            if chave in ("bitola", "qualidade"):
+                campo.bind(
+                    "<KeyRelease>",
+                    lambda _evento: self._ao_alterar_material(),
+                    add="+",
+                )
 
+        ctk.CTkLabel(
+            form,
+            text="Código",
+            width=140,
+            anchor="w",
+            font=ctk.CTkFont(size=16, weight="bold"),
+        ).grid(
+            row=len(self.CAMPOS),
+            column=0,
+            sticky="w",
+            padx=(8, 8),
+            pady=4,
+        )
+        self.codigo_entry = ctk.CTkEntry(
+            form,
+            height=35,
+            font=ctk.CTkFont(size=18),
+            state="readonly",
+        )
+        self.codigo_entry.grid(
+            row=len(self.CAMPOS),
+            column=1,
+            sticky="ew",
+            padx=(0, 8),
+            pady=4,
+        )
         self._borda_padrao = self.campos["bitola"].cget("border_color")
 
         botoes = ctk.CTkFrame(painel, fg_color="transparent")
-        botoes.grid(row=2, column=0, sticky="ew", padx=8, pady=(8, 0))
+        botoes.grid(row=2, column=0, sticky="ew", padx=8, pady=(2, 0))
         botoes.grid_columnconfigure((0, 1), weight=1, uniform="botoes")
 
         self.confirmar_btn = ctk.CTkButton(
@@ -181,13 +220,18 @@ class InventarioMP(ctk.CTkFrame):
             pady=(6, 0),
         )
 
-        self.teclado = TecladoFixo(painel, ao_proximo=self._proximo_campo)
+        self.teclado = TecladoFixo(
+            painel,
+            ao_proximo=self._proximo_campo,
+            ao_alterar=self._ao_alterar_material,
+        )
         self.teclado.grid(row=4, column=0, sticky="sew", padx=8, pady=(4, 10))
         painel.grid_rowconfigure(4, weight=1)
 
         for chave, campo in self.campos.items():
             if chave != "localizacao":
                 self.teclado.registrar_campo(campo)
+        self.teclado.registrar_campo(self.codigo_entry)
         self.teclado.definir_alvo(self.campos["bitola"])
 
     def _build_tabela(self) -> None:
@@ -203,7 +247,7 @@ class InventarioMP(ctk.CTkFrame):
         )
 
         direita = ctk.CTkFrame(self, fg_color="transparent")
-        direita.grid(row=0, column=1, sticky="nsew", padx=(10, 20), pady=20)
+        direita.grid(row=0, column=0, sticky="nsew", padx=(10, 20), pady=20)
         direita.grid_columnconfigure(0, weight=1)
         direita.grid_rowconfigure(1, weight=1)
 
@@ -268,6 +312,7 @@ class InventarioMP(ctk.CTkFrame):
             "quantidade": "Quantidade",
             "localizacao": "Local",
             "operador": "Usuário",
+            "codigo": "Código",
         }
         larguras = {
             "data_hora": 140,
@@ -277,6 +322,7 @@ class InventarioMP(ctk.CTkFrame):
             "quantidade": 115,
             "localizacao": 130,
             "operador": 140,
+            "codigo": 190,
         }
         for coluna in self.COLUNAS:
             self.tree.heading(coluna, text=rotulos[coluna])
@@ -287,7 +333,7 @@ class InventarioMP(ctk.CTkFrame):
                 stretch=False,
                 anchor="center",
             )
-        for coluna in ("qualidade", "rastreabilidade", "operador"):
+        for coluna in ("qualidade", "rastreabilidade", "operador", "codigo"):
             self.tree.column(coluna, anchor="w")
 
         self.tree.bind("<Double-1>", lambda _evento: self.editar_selecionado())
@@ -448,6 +494,7 @@ class InventarioMP(ctk.CTkFrame):
                 "Quantidade",
                 "Local",
                 "Usuário",
+                "Código",
             ]
 
             ws.append(cabecalhos)
@@ -470,6 +517,7 @@ class InventarioMP(ctk.CTkFrame):
                     quantidade,
                     row.get("localizacao") or "",
                     row.get("usuario") or "",
+                    row.get("codigo") or "",
                 ])
 
             # Formato de data e hora.
@@ -489,6 +537,7 @@ class InventarioMP(ctk.CTkFrame):
                 "E": 16,
                 "F": 10,
                 "G": 15,
+                "H": 24,
             }
 
             for coluna, largura in larguras.items():
@@ -528,6 +577,15 @@ class InventarioMP(ctk.CTkFrame):
             )
 
     def _preencher_tabela(self, registros: list[dict], selecionar_id=None) -> None:
+        # Não importa dados da planilha antiga. Registros do aplicativo que
+        # ainda não tenham código recebem a sugestão atual apenas na exibição.
+        for row in registros:
+            if not row.get("codigo"):
+                row["codigo"] = buscar_codigo_produto(
+                    row.get("bitola"),
+                    row.get("qualidade"),
+                ) or CODIGO_PENDENTE
+
         self.registros_todos = {
             str(row["id"]): row
             for row in registros
@@ -571,6 +629,7 @@ class InventarioMP(ctk.CTkFrame):
                     self._fmt(row.get("quantidade")),
                     row.get("localizacao") or "",
                     row.get("usuario") or "",
+                    row.get("codigo") or CODIGO_PENDENTE,
                 ),
                 tags=(tag,),
             )
@@ -658,6 +717,29 @@ class InventarioMP(ctk.CTkFrame):
     # ------------------------------------------------------------------
     # Incluir / editar / excluir / limpar
     # ------------------------------------------------------------------
+    def _definir_codigo(self, codigo: str | None) -> None:
+        """Atualiza o campo mantendo-o editável apenas durante uma edição."""
+        editando = self.registro_em_edicao is not None
+        self.codigo_entry.configure(state="normal")
+        self.codigo_entry.delete(0, "end")
+        if codigo:
+            self.codigo_entry.insert(0, str(codigo))
+        self.codigo_entry.configure(state="normal" if editando else "readonly")
+
+    def _ao_alterar_material(self, campo=None) -> None:
+        """Atualiza a sugestão ao mudar bitola/qualidade, inclusive no teclado virtual."""
+        if campo is not None and campo not in (
+            self.campos["bitola"],
+            self.campos["qualidade"],
+        ):
+            return
+
+        codigo = buscar_codigo_produto(
+            self.campos["bitola"].get(),
+            self.campos["qualidade"].get(),
+        )
+        self._definir_codigo(codigo)
+
     def _ler_campos(self) -> dict[str, str]:
         return {
             chave: self.campos[chave].get().strip()
@@ -666,12 +748,14 @@ class InventarioMP(ctk.CTkFrame):
 
     def _confirmar(self) -> None:
         valores = self._ler_campos()
+        codigo = self.codigo_entry.get().strip() or CODIGO_PENDENTE
         editando = self.registro_em_edicao
 
         try:
             repositorio = self._obter_repositorio()
             if editando is None:
                 resultado = repositorio.incluir_inventario_mp(
+                    codigo=codigo,
                     **valores,
                     nome_operador=self.operador,
                 )
@@ -679,6 +763,7 @@ class InventarioMP(ctk.CTkFrame):
             else:
                 resultado = repositorio.atualizar_inventario_mp(
                     int(editando["id"]),
+                    codigo=codigo,
                     **valores,
                     nome_operador=self.operador,
                 )
@@ -696,7 +781,17 @@ class InventarioMP(ctk.CTkFrame):
             return
 
         registro_id = resultado.get("id")
-        self._limpar(manter_status=True)
+
+        if editando is None:
+            # Inclusão: limpa somente quantidade e rastreabilidade.
+            self.campos["quantidade"].delete(0, "end")
+            self.campos["rastreabilidade"].delete(0, "end")
+            self.campos["rastreabilidade"].insert(0, "L")
+            self.campos["rastreabilidade"].focus_set()
+        else:
+            # Edição: mantém o comportamento atual após salvar.
+            self._limpar(manter_status=True)
+
         self._mostrar_status(mensagem)
         self.atualizar(selecionar_id=registro_id)
 
@@ -733,6 +828,11 @@ class InventarioMP(ctk.CTkFrame):
             campo.insert(0, texto)
 
         self.registro_em_edicao = row
+        codigo = row.get("codigo") or buscar_codigo_produto(
+            row.get("bitola"),
+            row.get("qualidade"),
+        ) or CODIGO_PENDENTE
+        self._definir_codigo(codigo)
         self.titulo_label.configure(
             text=f"Editando registro nº {row['id']}",
             text_color=self.COR_EDICAO,
@@ -817,12 +917,13 @@ class InventarioMP(ctk.CTkFrame):
     def _limpar(self, manter_status: bool = False) -> None:
         for chave, campo in self.campos.items():
             if chave == "localizacao":
-                campo.set("")
+                # campo.set("")
                 campo.configure(values=self.locais_estoque)
             else:
                 campo.delete(0, "end")
 
         self.registro_em_edicao = None
+        self._definir_codigo(None)
         self.titulo_label.configure(
             text="Inventário MP",
             text_color=self._cor_titulo,

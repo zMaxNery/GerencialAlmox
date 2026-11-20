@@ -15,12 +15,14 @@ class TecladoFixo(ctk.CTkFrame):
         self,
         parent,
         ao_proximo: Callable[[], None] | None = None,
-        altura_tecla: int = 42,
+        altura_tecla: int = 40,
+        ao_alterar: Callable[[object], None] | None = None,
     ) -> None:
         super().__init__(parent)
 
         self._alvo = None
         self._ao_proximo = ao_proximo
+        self._ao_alterar = ao_alterar
         self._altura = altura_tecla
 
         self._build()
@@ -57,7 +59,7 @@ class TecladoFixo(ctk.CTkFrame):
             ("1", 0, 0), ("2", 0, 1), ("3", 0, 2), ("A", 0, 3),
             ("4", 1, 0), ("5", 1, 1), ("6", 1, 2), ("G", 1, 3),
             ("7", 2, 0), ("8", 2, 1), ("9", 2, 2), ("L", 2, 3),
-            ("0", 3, 1),                         ("X", 3, 3),
+            ("0", 3, 0), (".", 3, 1), ("/", 3, 2), ("X", 3, 3),
         )
 
         for tecla, linha, coluna in disposicao:
@@ -163,6 +165,8 @@ class TecladoFixo(ctk.CTkFrame):
                 entry.delete("sel.first", "sel.last")
             entry.insert("insert", valor)
             entry.focus_set()
+            if self._ao_alterar is not None:
+                self._ao_alterar(self._alvo)
         except tk.TclError:
             pass
 
@@ -179,6 +183,8 @@ class TecladoFixo(ctk.CTkFrame):
                 if posicao > 0:
                     entry.delete(posicao - 1)
             entry.focus_set()
+            if self._ao_alterar is not None:
+                self._ao_alterar(self._alvo)
         except tk.TclError:
             pass
 
